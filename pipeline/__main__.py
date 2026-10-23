@@ -5,6 +5,7 @@
     plan            list videos to work on (unfinished first, then a new topic if the queue is short)
     produce <id>    run the production steps for one video; script.json must be written first
     deliver         move the oldest queued video into ready/ (skipping expired topics)
+    fetch-assets    download the Paper II image library from the cloud folder into brand/paper2/
 
 A scheduled run is: plan -> write script.json for each video that needs one -> produce each -> deliver.
 """
@@ -68,7 +69,19 @@ def plan(store: Store, cfg: config.Config) -> None:
     print(json.dumps(todo, indent=2))
 
 
+ASSET_FOLDERS = ("stickers", "photos", "circles", "paper")
+
+
+def fetch_assets(store: Store) -> None:
+    """The images are Pexels-derived, so they live in the private cloud folder, not the public repo."""
+    for folder in ASSET_FOLDERS:
+        store.download_dir(f"assets/paper2/{folder}", ROOT / "brand" / "paper2" / folder)
+    print("assets ready in brand/paper2/")
+
+
 def produce(store: Store, cfg: config.Config, video_id: str) -> None:
+    if not all((ROOT / "brand" / "paper2" / f).is_dir() for f in ASSET_FOLDERS):
+        fetch_assets(store)
     VideoFolder(store, cfg.work_dir, video_id).run(production_steps(cfg))
     print(f"[{video_id}] queued")
 
@@ -102,6 +115,8 @@ def main() -> None:
         produce(store, cfg, args[1])
     elif command == "deliver":
         deliver(store, cfg)
+    elif command == "fetch-assets":
+        fetch_assets(store)
     else:
         sys.exit(__doc__)
 

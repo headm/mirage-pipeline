@@ -57,6 +57,11 @@ class Store:
     def upload(self, local: Path, rel: str) -> None:
         self._rclone("copyto", str(local), self._path(rel))
 
+    def download_dir(self, rel: str, local: Path) -> None:
+        """Copy a cloud folder to a local one, skipping files that are already up to date."""
+        local.mkdir(parents=True, exist_ok=True)
+        self._rclone("copy", self._path(rel), str(local))
+
     def copy_dir(self, src_rel: str, dst_rel: str) -> None:
         self._rclone("copy", self._path(src_rel), self._path(dst_rel))
 
