@@ -1,3 +1,4 @@
 requests>=2.31
 onnxruntime>=1.18
 numpy>=1.26
+pillow>=10.0

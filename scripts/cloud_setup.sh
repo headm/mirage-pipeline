@@ -14,9 +14,9 @@ RVM_SHA256=88d4531297118f595bf2fd60f6f566aec2e559393802d1f436c380f0cbbd2828
 as_root() { if [ "$(id -u)" = 0 ]; then "$@"; else sudo "$@"; fi; }
 
 # ffmpeg (matte and frame checks) and a software Vulkan driver (Tesseract renders with wgpu).
-if ! command -v ffmpeg >/dev/null || ! ls /usr/share/vulkan/icd.d/lvp_icd* >/dev/null 2>&1; then
+if ! command -v ffmpeg >/dev/null || ! ls /usr/share/vulkan/icd.d/lvp_icd* >/dev/null 2>&1 || ! python3 -c "import venv, ensurepip" 2>/dev/null; then
   as_root apt-get update -qq
-  as_root apt-get install -y -qq ffmpeg unzip libvulkan1 mesa-vulkan-drivers >/dev/null
+  as_root apt-get install -y -qq ffmpeg unzip libvulkan1 mesa-vulkan-drivers python3-venv >/dev/null
 fi
 
 if ! command -v rclone >/dev/null; then
@@ -43,10 +43,13 @@ if [ ! -f "$RVM" ]; then
   echo "${RVM_SHA256}  $RVM" | sha256sum -c -
 fi
 
-python3 -m pip install -q -r requirements.txt
+# Own Python environment: the image ships a broken system Pillow that pip would otherwise reuse.
+[ -x .venv/bin/python ] || python3 -m venv .venv
+.venv/bin/python -m pip install -q --upgrade pip
+.venv/bin/python -m pip install -q -r requirements.txt
 
 cat > tools/env.sh <<EOF
-export PATH="\$HOME/.local/bin:\$PATH"
+export PATH="$ROOT/.venv/bin:\$HOME/.local/bin:\$PATH"
 export TSRCT="$TSRCT"
 export RVM_MODEL="$ROOT/$RVM"
 export FONT="$ROOT/brand/font.ttf"
