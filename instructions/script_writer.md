@@ -53,9 +53,9 @@ that isn't here, leave it out.
 Aria Payments is owned by a family member (your girlfriend's brother). You are not paid and
 have no business relationship, but the family connection must still be disclosed.
 
-- The second sentence of the script, right after the hook, is exactly: "Quick heads up: Aria
-  Payments is a family business, and I'm not paid." The template shows an on-screen label
-  only while this sentence is spoken.
+- The second sentence of the script, right after the hook, is exactly: "I'm spreading the word
+  about Aria Payments, a family business." The template shows an on-screen label only while
+  this sentence is spoken.
 - The caption must start with "Not sponsored. Aria Payments is a family business."
 - Do not use `#ad`, since nothing is paid. Don't call yourself a partner.
 
