@@ -131,10 +131,12 @@ def build(v: VideoFolder, cfg: Config) -> None:
         # Caption bar behind the timed phrases.
         rect(20, "Caption shade", 0, cta_start, [90, 1400], [900, 150], rgba(CHARCOAL, 0.8)),
     ]
+    # Each phrase stays up until the next one starts, so the bar is never empty between phrases.
+    phrases = [p for p in caption_phrases(alignment) if p[1] < cta_start]
     next_id = 21
-    for words, start, end in caption_phrases(alignment):
-        if start >= cta_start:
-            break
+    for i, (words, start, _) in enumerate(phrases):
+        start = 0 if i == 0 else start
+        end = phrases[i + 1][1] if i + 1 < len(phrases) else cta_start
         actions.append(text(next_id, f"Caption {next_id - 20}", words, start,
                             max(1, min(end, cta_start) - start), [110, 1420], [860, 120], 56, font))
         next_id += 1
