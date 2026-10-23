@@ -36,6 +36,12 @@ that isn't here, leave it out.
 - Restaurants: works alongside existing POS systems such as Toast, Aloha and Clover. Through
   the FoodHub partnership it offers direct online ordering so restaurants can avoid the
   20–30% commissions delivery apps charge, plus low-cost kiosks.
+- Processing scales as a business grows, without a new contract every time.
+- FoodHub direct ordering is described as: one platform for online ordering, payments and
+  reconciliation; improving a restaurant's search visibility; more customers ordering direct
+  and coming back.
+- Works with quick service, fine dining, food trucks and multi-location groups.
+- Mission, in Aria's words: payment processing should be simple, and it should cost less.
 - Contact: ariapayments.biz, 1-973-494-7071, info@ariapayments.biz.
 
 ## Never say
@@ -61,6 +67,18 @@ have no business relationship, but the family connection must still be disclosed
 
 If the arrangement changes (a commission, referral fee, free service or any other benefit),
 the disclosure must change to a paid one with `#ad` before the next video goes out.
+
+## Reused topics
+
+Topics come round again every few weeks. When `plan` lists `previous_videos_on_this_topic`,
+this video must feel new to someone who saw those:
+
+- A different hook: a different question or observation, and a different hook style
+  (question, myth, mistake, mini-story, "if you're a ___ owner") from the earlier ones.
+- A different angle or audience from the topic notes (for example the café owner instead of
+  the restaurant owner, or the "why" instead of the "how").
+- Different on-screen text, and mostly different stickers, photos and circles.
+- The same approved facts are fine; repeat facts, not wording.
 
 ## Shape of a script
 

@@ -13,7 +13,7 @@ import json
 import sys
 from datetime import date
 
-from . import config, topics
+from . import config, paper2, topics
 from .config import ROOT
 from .steps import production_steps
 from .store import FOLDERS, Store
@@ -39,11 +39,40 @@ def status(store: Store, cfg: config.Config) -> None:
     rows = topics.load(store, cfg.work_dir) if store.exists("topics.csv") else []
     queued, ready, posted = (store.list_dirs(f) for f in ("queue", "ready", "posted"))
     in_progress = unfinished(store)
-    print(f"topics left:  {sum(1 for r in rows if not r.get('used_on'))}")
+    print(f"topics:       {len(rows)} ({sum(1 for r in rows if topics.times_used(r) == 0)} never used)")
     print(f"in progress:  {len(in_progress)} {in_progress}")
     print(f"queued:       {len(queued)} (target {cfg.queue_target})")
     print(f"ready:        {len(ready)} {ready}")
     print(f"posted:       {len(posted)}")
+
+
+def previous_videos(store: Store, cfg: config.Config, topic_id: str, exclude: str) -> list[dict]:
+    """What earlier videos on this topic already did, so a reuse can take a different angle."""
+    out = []
+    for vid in store.list_dirs("videos"):
+        rest = vid[11:]  # ids are YYYY-MM-DD-<topic> or YYYY-MM-DD-<topic>-<n>
+        same_topic = rest == topic_id or (rest.startswith(topic_id + "-") and rest[len(topic_id) + 1:].isdigit())
+        if vid == exclude or not same_topic:
+            continue
+        v = VideoFolder(store, cfg.work_dir, vid)
+        if not v.done("script.json"):
+            continue
+        s = json.loads(v.path("script.json").read_text())
+        out.append({"id": vid, "hook": s.get("hook"),
+                    "opening": " ".join(s.get("script", "").split()[:40]),
+                    "on_screen": paper2.on_screen_text(s.get("moments", [])),
+                    "assets": sorted({m.get(k) for m in s.get("moments", []) for k in ("sticker", "photo", "circle") if m.get(k)}
+                                     | {x for m in s.get("moments", []) for x in m.get("stickers", [])})})
+    return out
+
+
+def new_video_id(store: Store, today: date, topic_id: str) -> str:
+    base = f"{today.isoformat()}-{topic_id}"
+    existing = set(store.list_dirs("videos"))
+    n, video_id = 2, base
+    while video_id in existing:
+        video_id, n = f"{base}-{n}", n + 1
+    return video_id
 
 
 def plan(store: Store, cfg: config.Config) -> None:
@@ -52,20 +81,21 @@ def plan(store: Store, cfg: config.Config) -> None:
         today = date.today()
         topic = topics.take_next(store, cfg.work_dir, today)
         if topic:
-            video_id = f"{today.isoformat()}-{topic['id']}"
+            video_id = new_video_id(store, today, topic["id"])
             v = VideoFolder(store, cfg.work_dir, video_id)
             (v.local / "topic.json").write_text(json.dumps(topic, indent=2))
             v.save("topic.json")
             ids.append(video_id)
         else:
-            print("WARNING: no unused topics left in topics.csv", file=sys.stderr)
+            print("WARNING: no usable topics in topics.csv (all expired?)", file=sys.stderr)
 
     todo = []
     for video_id in ids:
         v = VideoFolder(store, cfg.work_dir, video_id)
+        topic = json.loads(v.path("topic.json").read_text())
         todo.append({"id": video_id, "needs_script": not v.done("script.json"),
-                     "script_path": str(v.local / "script.json"),
-                     "topic": json.loads(v.path("topic.json").read_text())})
+                     "script_path": str(v.local / "script.json"), "topic": topic,
+                     "previous_videos_on_this_topic": previous_videos(store, cfg, topic["id"], video_id)})
     print(json.dumps(todo, indent=2))
 
 

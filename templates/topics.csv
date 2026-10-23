@@ -1,9 +1,31 @@
-id,topic,notes,kind,expires_on,used_on
-statement-check,Do you know what you pay to take cards?,"Most owners never read their processing statement; Aria's Free Statement Analysis shows what you could save by switching; CTA: link in bio",evergreen,,
-delivery-apps,Delivery apps take 20-30%,"Delivery apps charge 20-30% commissions; Aria + FoodHub direct online ordering sends orders straight to your restaurant; works with Toast, Aloha, Clover",evergreen,,
-dual-pricing,Dual pricing explained,"Cash price and card price shown up front; Aria helps set it up; rules depend on your state",evergreen,,
-surcharge-vs-cash-discount,Surcharge vs cash discount,"Surcharge applies to credit only, never debit or prepaid, capped by card brand rules; cash discount is one posted price with a discount for cash; check your state's rules",evergreen,,
-hidden-fees,Hidden fees on your statement,"Aria's pitch: transparent pricing built on your ticket size and volume, no hidden fees, no surprises; get the free statement analysis",evergreen,,
-already-on-toast,Already on Toast or Clover?,"You don't have to rip out your POS to look at costs; Aria works alongside Toast, Aloha and Clover; free statement analysis",evergreen,,
-food-trucks,Taking cards from a food truck,"Wireless and mobile readers; every major card; hands-on setup and a real person by phone",evergreen,,
-real-person-support,When your terminal dies on a Friday night,"Hands-on onboarding; a real person by phone, 24/7 support for restaurants",evergreen,,
+id,topic,notes,kind,expires_on,used_on,times_used
+statement-check,Do you know what you pay to take cards?,"Most owners never read their processing statement; Aria's Free Statement Analysis shows what you could save by switching; CTA: link in bio",evergreen,,,0
+delivery-apps,Delivery apps take 20-30%,"Delivery apps charge 20-30% commissions; Aria + FoodHub direct online ordering sends orders straight to your restaurant; works with Toast, Aloha, Clover",evergreen,,,0
+dual-pricing,Dual pricing explained,"Cash price and card price shown up front; Aria helps set it up; rules depend on your state",evergreen,,,0
+surcharge-vs-cash-discount,Surcharge vs cash discount,"Surcharge applies to credit only, never debit or prepaid, capped by card brand rules; cash discount is one posted price with a discount for cash; check your state's rules",evergreen,,,0
+hidden-fees,Hidden fees on your statement,"Aria's pitch: transparent pricing built on your ticket size and volume, no hidden fees, no surprises; get the free statement analysis. Don't invent fee names.",evergreen,,,0
+already-on-toast,Already on Toast or Clover?,"You don't have to rip out your POS to look at costs; Aria works alongside Toast, Aloha and Clover; free statement analysis",evergreen,,,0
+food-trucks,Taking cards from a food truck,"Wireless and mobile readers; every major card; hands-on setup and a real person by phone",evergreen,,,0
+real-person-support,When your terminal dies on a Friday night,"Hands-on onboarding; a real person by phone, 24/7 support for restaurants",evergreen,,,0
+surcharge-rules,Surcharging: what you can and can't do,"Credit cards only, never debit or prepaid; capped by card brand rules; whether it's allowed depends on your state; Aria helps you set it up compliantly. Not legal advice: say check your state's rules",evergreen,,,0
+cash-discount-explained,Cash discount in plain English,"One posted price, with a discount for customers who pay cash; Aria helps set it up; rules depend on your state",evergreen,,,0
+pricing-by-volume,Your pricing should fit your business,"Aria builds pricing around your ticket size and volume instead of one-size-fits-all; transparent, no surprises; free statement analysis to see where you stand",evergreen,,,0
+salon-owners,Salon and barber owners: card fees add up,"Every client pays by card; Aria accepts every major card, hands-on onboarding, a real person by phone; free statement analysis",evergreen,,,0
+cafe-small-tickets,Cafés: lots of small card payments,"Coffee shops take many small card payments; Aria builds pricing around ticket size and volume; free statement analysis",evergreen,,,0
+bakery-mornings,Bakeries and the morning rush,"Fast checkout with countertop terminals or wireless readers; every major card; pricing built around ticket size and volume",evergreen,,,0
+retail-in-store-online,Retail: in store and online with one processor,"Accept every major card in store, online, or both; countertop terminals, virtual terminals and full POS options",evergreen,,,0
+phone-orders,Taking payments over the phone,"Virtual terminals let you take card payments for phone orders; every major card; security with tokenization and point-to-point encryption",evergreen,,,0
+payment-security,Is your card processing secure?,"Tokenization and point-to-point encryption on every transaction; systems meet PCI standards; explain simply, no fear-mongering",evergreen,,,0
+new-restaurant,Opening a restaurant? Set up payments right,"Hands-on onboarding; terminals, POS and online ordering for quick service, fine dining, food trucks and multi-location groups; get pricing built for your volume from day one",evergreen,,,0
+equipment-options,Which card reader do you actually need?,"Countertop terminals, wireless and mobile readers, virtual terminals, full POS with printers and PIN pads; matched to how your customers pay",evergreen,,,0
+pay-at-the-table,Card readers that come to the table,"Wireless readers let staff take payment at the table instead of walking cards to the register; hands-on setup",evergreen,,,0
+kiosks,Self-order kiosks for small restaurants,"Through the FoodHub partnership Aria offers low-cost kiosks that can lift in-store sales; works alongside Toast, Aloha, Clover",evergreen,,,0
+direct-ordering-regulars,Turn delivery customers into regulars,"Direct online ordering sends customers straight to your restaurant instead of an app, so they order from you again; FoodHub partnership; avoid 20-30% app commissions",evergreen,,,0
+search-visibility,Get found online without the apps,"FoodHub direct ordering is described as improving your search visibility and driving orders straight to your restaurant; one platform for ordering, payments and reconciliation",evergreen,,,0
+multi-location,Running more than one location?,"Aria works with multi-location groups; terminals, POS and online ordering that adapt to each location; hands-on support",evergreen,,,0
+switching-myth,Switching processors isn't as painful as you think,"Works alongside the POS you already have (Toast, Aloha, Clover); hands-on onboarding; a real person by phone; start with the free statement analysis",evergreen,,,0
+statement-analysis-how,How the free statement analysis works,"Upload your current processing statement; see what you could save by switching; takes minutes; free",evergreen,,,0
+debit-vs-credit,Why you can't surcharge debit cards,"Surcharges can only apply to credit cards, never debit or prepaid; capped by card brand rules; dual pricing or cash discount are alternatives; check your state's rules",evergreen,,,0
+pizzeria-delivery,Pizza shops: stop sharing your delivery money,"Delivery apps charge 20-30% commissions; FoodHub direct ordering through Aria sends orders straight to you; low-cost kiosks for in-store",evergreen,,,0
+who-is-aria,Who's behind Aria Payments?,"Morristown NJ merchant services company, 13 years in the industry; mission: payment processing should be simple and cost less; honest pricing and a real person by phone",evergreen,,,0
+growth-without-new-contract,Growing? Your processing should keep up,"Aria says processing scales as you grow without a new contract every time; pricing built around your volume",evergreen,,,0
