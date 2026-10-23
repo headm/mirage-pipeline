@@ -194,8 +194,9 @@ def scale_for(size, width):
 
 def banner(b: Builder, m: dict, t0: int, dur: int, tmp: Path) -> None:
     paper = LIB / "paper" / "banner-top.png"
-    lid = b.image(paper, (1080, 720), t0, dur, (540, 360), name="Banner paper")
-    b.keys(lid, "positionY", [(0, -380, LINEAR), (320, 360, POP), (dur - 320, 360, LINEAR), (dur, -400, LINEAR)])
+    w, h = Image.open(paper).size  # transparent below the tear, so it can be taller than the paper
+    lid = b.image(paper, (w, h), t0, dur, (540, h / 2), name="Banner paper")
+    b.keys(lid, "positionY", [(0, -h / 2, LINEAR), (320, h / 2, POP), (dur - 320, h / 2, LINEAR), (dur, -h / 2 - 40, LINEAR)])
     b.stop_motion(lid)
     size = tape_label(m["label"], tmp / f"tape-{t0}.png")
     tl = b.image(tmp / f"tape-{t0}.png", size, t0 + 250, dur - 250, (520, 300), rotation=-4, name="Banner label")
