@@ -67,6 +67,33 @@ disclosure must change to a paid one with `#ad` before the next video goes out.
 - Plain spoken English: short sentences, contractions, no lists, no emoji, no hashtags,
   no stage directions. Spell out anything the voice might misread.
 
+## Graphic moments (Paper II style)
+
+Pick 3-5 moments that illustrate what is being said. `at_word` is the 0-based index of the
+spoken word (split the script on spaces) where the moment starts. Space them at least
+6 words apart, vary the types, and keep them out of the last ~8 words (the closing call to
+action card is added automatically).
+
+| type | fields | use it for |
+|---|---|---|
+| `banner` | `label` (1-3 words, caps), `sticker` | the hook or a topic, in the first sentence or two |
+| `keyword` | `word` (one word) | one word worth stressing |
+| `title` | `title` (one short lowercase word), `lines` (1-3 short label lines) | a key idea or a list of points |
+| `photo` | `photo` | a place: restaurant, café, salon, shop |
+| `circle` | `circle`, `stickers` (1-3) | money, payments or food, shown floating around you |
+
+Library names (use exactly these):
+
+- stickers: burger, calculator, card-and-phone, cash-bills, cash-fan, coffee-cups,
+  coffee-latte, coins, open-sign, open-sign-come-in, phone-pay, phone-tap, receipt-cash,
+  terminal-blue, terminal-receipt
+- photos: cafe-sunlit, cafe-tables, cafe-window, checkout-card, food-truck-night, kitchen,
+  salon-chairs, salon-studio, storefront-pink, storefront-red, storefront-striped
+- circles: main-street, main-street-dusk, pizza, pizza-board, sky-cloud, sky-clouds
+
+On-screen words follow the same rules as the script: no rates, no "cheaper than", no
+competitor names.
+
 ## Output: script.json
 
 ```json
@@ -76,7 +103,10 @@ disclosure must change to a paid one with `#ad` before the next video goes out.
   "script": "<the full spoken script>",
   "caption": "Unpaid partner of Aria Payments. <rest of caption, under 150 characters in total>",
   "hashtags": ["smallbusiness", "restaurantowner", "..."],
-  "claims": ["<each Aria fact used, copied from the list above>"]
+  "claims": ["<each Aria fact used, copied from the list above>"],
+  "moments": [
+    {"type": "banner", "at_word": 14, "label": "CARD FEES", "sticker": "terminal-blue"}
+  ]
 }
 ```
 

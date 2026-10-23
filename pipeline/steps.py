@@ -8,7 +8,7 @@ import time
 
 import requests
 
-from . import edit
+from . import edit, paper2
 from .config import Config
 from .video import Step, VideoFolder
 
@@ -33,6 +33,7 @@ def check_script(v: VideoFolder) -> None:
     for pattern in BANNED:
         if re.search(pattern, script, re.IGNORECASE):
             problems.append(f"script matches banned pattern {pattern}")
+    problems += paper2.validate_moments(s.get("moments", []))
     if problems:
         raise RuntimeError("script.json rejected: " + "; ".join(problems))
 
@@ -97,11 +98,21 @@ def package(v: VideoFolder) -> None:
     v.store.upload(v.local / "caption.txt", f"{queue}/caption.txt")
 
 
+def matte(v: VideoFolder) -> None:
+    from .matte import make_matte  # onnxruntime is only needed for this step
+    make_matte(v.path("raw.mp4"), v.local / "matte.mp4")
+
+
 def production_steps(cfg: Config) -> list[Step]:
+    if os.environ.get("TEMPLATE", "paper2") == "classic":
+        edit_step = Step("edit", ("final.mp4", "cover.png", "edit.tsrct"), lambda v: edit.build(v, cfg))
+    else:
+        edit_step = Step("edit", ("final.mp4", "cover.png", "edit.tsrct"), lambda v: paper2.build(v, cfg))
     return [
         Step("script", ("script.json",), check_script),
         Step("voice", ("voice.mp3", "alignment.json"), voice),
         Step("avatar", ("raw.mp4",), lambda v: avatar(v, cfg)),
-        Step("edit", ("final.mp4", "cover.png", "edit.tsrct"), lambda v: edit.build(v, cfg)),
+        Step("matte", ("matte.mp4",), matte),
+        edit_step,
         Step("package", ("caption.txt",), package),
     ]
