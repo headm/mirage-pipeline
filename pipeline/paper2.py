@@ -334,19 +334,49 @@ def schedule(moments: list[dict], words: list, cta_start: int) -> list[tuple[dic
     return placed
 
 
-def validate_moments(moments: list[dict]) -> list[str]:
+HEADLINE_FIELD = {"banner": "label", "keyword": "word", "title": "title"}
+
+
+def on_screen_text(moments: list[dict]) -> list[str]:
+    """Every piece of text a moment puts on screen."""
+    texts = []
+    for m in moments:
+        field = HEADLINE_FIELD.get(m.get("type"))
+        if field and m.get(field):
+            texts.append(m[field])
+        texts += m.get("lines", [])
+    return texts
+
+
+def validate_moments(moments: list[dict], review: list[dict] | None = None) -> list[str]:
+    """Checks that hold however the moments were written: assets exist, and on-screen text is
+    a real phrase (a lone word lifted from the script, like "Dual" or "two", reads as nonsense
+    to someone watching without sound) and has been reviewed as standalone text."""
     problems = []
+    reviewed = {normalize(r.get("text", "")) for r in (review or []) if r.get("means")}
     for m in moments:
         t = m.get("type")
         if t not in MOMENT_TYPES:
             problems.append(f"unknown moment type {t}")
             continue
+        field = HEADLINE_FIELD.get(t)
+        if field:
+            text = m.get(field, "")
+            if not 2 <= len(text.split()) <= 4 or len(text) > 24:
+                problems.append(f"{t} {field} \"{text}\" must be a 2-4 word phrase, at most 24 characters")
+        for line in m.get("lines", []):
+            if not 1 <= len(line.split()) <= 4 or len(line) > 22:
+                problems.append(f"{t} line \"{line}\" must be 1-4 words, at most 22 characters")
         for key, folder in (("sticker", "stickers"), ("photo", "photos"), ("circle", "circles")):
             if key in m and not (LIB / folder / (m[key] + ("-torn.png" if key == "photo" else ".png"))).exists():
                 problems.append(f"{t}: no {key} named {m[key]}")
         for s in m.get("stickers", []):
             if not (LIB / "stickers" / f"{s}.png").exists():
                 problems.append(f"{t}: no sticker named {s}")
+    if review is not None:
+        missing = [x for x in on_screen_text(moments) if normalize(x) not in reviewed]
+        if missing:
+            problems.append("on_screen_review is missing (or has no 'means' for): " + ", ".join(f'"{x}"' for x in missing))
     return problems
 
 

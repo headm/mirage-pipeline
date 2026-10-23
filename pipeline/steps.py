@@ -35,7 +35,7 @@ def check_script(v: VideoFolder) -> None:
     for pattern in BANNED:
         if re.search(pattern, script, re.IGNORECASE):
             problems.append(f"script matches banned pattern {pattern}")
-    problems += paper2.validate_moments(s.get("moments", []))
+    problems += paper2.validate_moments(s.get("moments", []), s.get("on_screen_review", []))
     if problems:
         raise RuntimeError("script.json rejected: " + "; ".join(problems))
 

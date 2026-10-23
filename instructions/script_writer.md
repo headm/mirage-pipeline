@@ -88,9 +88,9 @@ action card is added automatically).
 
 | type | fields | use it for |
 |---|---|---|
-| `banner` | `label` (1-3 words, caps), `sticker` | the hook or a topic, in the first sentence or two |
-| `keyword` | `word` (1-3 words) | a short phrase worth stressing |
-| `title` | `title` (1-3 words, lowercase), `lines` (1-3 short label lines) | a key idea or a list of points |
+| `banner` | `label` (2-4 words, caps), `sticker` | the hook or a topic, in the first sentence or two |
+| `keyword` | `word` (2-4 words) | a short phrase worth stressing |
+| `title` | `title` (2-4 words, lowercase), `lines` (1-3 label lines, up to 4 words each) | a key idea or a list of points |
 | `photo` | `photo` | a place: restaurant, café, salon, shop |
 | `circle` | `circle`, `stickers` (1-3) | money, payments or food, shown floating around you |
 
@@ -98,6 +98,11 @@ Every piece of on-screen text must make sense on its own, to someone who glances
 screen without hearing the audio. A single word cut out of a phrase usually doesn't:
 "Dual" or "two" mean nothing alone, "Dual pricing" and "two prices" do. The same goes for
 banner labels and title lines.
+
+Before you finish, review every piece of on-screen text by itself, as if it were the only
+thing on screen, and record it in `on_screen_review` with what it tells a viewer who can't
+hear the audio. If you can't write a clear "means" for it, rewrite the text. The script check
+rejects headlines that aren't 2-4 word phrases and any on-screen text missing from the review.
 
 Library names (use exactly these):
 
@@ -122,7 +127,14 @@ competitor names.
   "hashtags": ["smallbusiness", "restaurantowner", "..."],
   "claims": ["<each Aria fact used, copied from the list above>"],
   "moments": [
-    {"type": "banner", "at_word": 14, "label": "CARD FEES", "sticker": "terminal-blue"}
+    {"type": "banner", "at_word": 14, "label": "CARD FEES", "sticker": "terminal-blue"},
+    {"type": "title", "at_word": 31, "title": "two prices", "lines": ["CASH PRICE", "CARD PRICE"]}
+  ],
+  "on_screen_review": [
+    {"text": "CARD FEES", "means": "this video is about the fees you pay to take cards"},
+    {"text": "two prices", "means": "you can show two prices for the same item"},
+    {"text": "CASH PRICE", "means": "one price is for paying cash"},
+    {"text": "CARD PRICE", "means": "the other is for paying by card"}
   ]
 }
 ```
