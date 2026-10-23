@@ -30,6 +30,12 @@ def check_script(v: VideoFolder) -> None:
     sentences = paper2.split_sentences(script)
     if len(sentences) < 2 or paper2.normalize(sentences[1]) != paper2.normalize(SPOKEN_DISCLOSURE):
         problems.append(f"second sentence must be the disclosure: \"{SPOKEN_DISCLOSURE}\"")
+    # The disclosure ends on "a family business": a next sentence opening with a back-reference
+    # ("It's called...") reads as being about Aria rather than the hook.
+    if len(sentences) > 2 and re.match(r"(it|it's|its|this|that|that's|they|they're|these|those)\b",
+                                       paper2.normalize(sentences[2])):
+        problems.append("the sentence after the disclosure must not open with a pronoun "
+                        f"pointing back (\"{sentences[2][:40]}...\"); name the subject again")
     if not s.get("caption", "").startswith(CAPTION_PREFIX):
         problems.append(f"caption must start with '{CAPTION_PREFIX}'")
     for pattern in BANNED:

@@ -68,6 +68,15 @@ the disclosure must change to a paid one with `#ad` before the next video goes o
   owner recognises ("Do you know what you pay every time a customer taps their card?").
 - Then the disclosure sentence (above), one concrete point from the topic notes, and one
   call to action, usually the Free Statement Analysis ("link in bio").
+- The sentence after the disclosure must stand on its own and pick the thread back up. The
+  disclosure ends on "a family business", so a sentence that opens with "It", "It's",
+  "This", "That", "They" or "These" sounds like it's about Aria, not the hook. Name the
+  subject again instead, or bridge back to the hook.
+  - Awkward: "...a family business. It's called dual pricing."
+  - Better: "...a family business. There's a fix for that, and it's called dual pricing."
+  - Better: "...a family business. Back to those fees: dual pricing shows two prices up front."
+- Read the hook, disclosure and next sentence together out loud; they should sound like one
+  person talking, not a hook, an interruption and a restart.
 - 450–750 characters, which is about 30–50 seconds spoken. Never over 800 characters.
 - Plain spoken English: short sentences, contractions, no lists, no emoji, no hashtags,
   no stage directions. Spell out anything the voice might misread.
