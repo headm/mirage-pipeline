@@ -64,6 +64,33 @@ def phrases(words: list, max_words: int = 3) -> list[list[int]]:
     return out + ([group] if group else [])
 
 
+def split_sentences(text: str) -> list[str]:
+    return [t for t in re.split(r"(?<=[.?!])\s+", text.strip()) if t]
+
+
+def normalize(text: str) -> str:
+    text = text.replace("\u2019", "'").replace("\u2018", "'").lower()
+    return re.sub(r"[^a-z0-9' ]", "", re.sub(r"\s+", " ", text)).strip()
+
+
+def disclosure_window(words: list) -> tuple[int, int]:
+    """Start and end (ms) of the spoken disclosure sentence; falls back to the second sentence."""
+    sentences, current = [], []
+    for w in words:
+        current.append(w)
+        if re.search(r"[.?!]$", w[0]):
+            sentences.append(current)
+            current = []
+    if current:
+        sentences.append(current)
+    target = normalize(BRAND["disclosure_spoken"])
+    for sent in sentences:
+        if normalize(" ".join(w[0] for w in sent)) == target:
+            return sent[0][1], sent[-1][2]
+    fallback = sentences[1] if len(sentences) > 1 else sentences[0]
+    return fallback[0][1], fallback[-1][2]
+
+
 def sentence_starts(words: list) -> list[int]:
     starts = [0]
     for i, (w, _, _) in enumerate(words[:-1]):
@@ -338,15 +365,15 @@ def build(v: VideoFolder, cfg: Config) -> None:
     cta_start = max(0, dur - CTA_MS)
     b = Builder()
 
-    # Persistent pieces, front-most first: halftone print texture, logo, then the disclosure,
-    # which stays up only while the opening disclaimer sentence is spoken.
+    # Persistent pieces, front-most first: halftone print texture, logo, then the disclosure
+    # label, which is up only while the spoken disclosure sentence (after the hook) is said.
     b.image(LIB / "paper" / "halftone-overlay.png", (1080, 1920), 0, dur, (540, 960), name="Halftone overlay")
     b.image(ROOT / "brand" / "logo-small.png", (217, 240), 0, dur, (985, 215), width=96, name="Logo")
     size = label_strip(BRAND["disclosure"], tmp / "disclosure.png", size=30)
-    disclaimer_end = next((e for w, _, e in words if re.search(r"[.?!]$", w)), 3000)
-    shown = min(dur, max(2500, disclaimer_end + 400))
-    dl = b.image(tmp / "disclosure.png", size, 0, shown, (40 + size[0] / 2, 205), rotation=-1, name="Disclosure")
-    b.keys(dl, "opacity", [(shown - 250, 100, LINEAR), (shown, 0, LINEAR)])
+    d_start, d_end = disclosure_window(words)
+    d_start, shown = max(0, d_start - 150), max(2000, d_end - d_start + 550)
+    dl = b.image(tmp / "disclosure.png", size, d_start, shown, (40 + size[0] / 2, 205), rotation=-1, name="Disclosure")
+    b.keys(dl, "opacity", [(0, 0, LINEAR), (150, 100, LINEAR), (shown - 250, 100, LINEAR), (shown, 0, LINEAR)])
 
     # Karaoke captions: one PNG per spoken word, each up until the next word starts.
     for g in phrases(words):

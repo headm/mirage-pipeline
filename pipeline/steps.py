@@ -12,7 +12,8 @@ from . import edit, paper2
 from .config import Config
 from .video import Step, VideoFolder
 
-DISCLOSURE_PREFIX = "Unpaid partner of Aria Payments"
+CAPTION_PREFIX = paper2.BRAND["caption_prefix"]
+SPOKEN_DISCLOSURE = paper2.BRAND["disclosure_spoken"]
 BANNED = [r"\bguarantee", r"cheaper than", r"\d+(\.\d+)?\s*%(?![^.]*delivery)", r"\bwe at aria\b"]
 
 
@@ -26,10 +27,11 @@ def check_script(v: VideoFolder) -> None:
     script = s.get("script", "")
     if not 300 <= len(script) <= 800:
         problems.append(f"script is {len(script)} characters, needs 300-800")
-    if "Aria Payments" not in script[:200]:
-        problems.append("partnership line must come in the first sentences")
-    if not s.get("caption", "").startswith(DISCLOSURE_PREFIX):
-        problems.append(f"caption must start with '{DISCLOSURE_PREFIX}'")
+    sentences = paper2.split_sentences(script)
+    if len(sentences) < 2 or paper2.normalize(sentences[1]) != paper2.normalize(SPOKEN_DISCLOSURE):
+        problems.append(f"second sentence must be the disclosure: \"{SPOKEN_DISCLOSURE}\"")
+    if not s.get("caption", "").startswith(CAPTION_PREFIX):
+        problems.append(f"caption must start with '{CAPTION_PREFIX}'")
     for pattern in BANNED:
         if re.search(pattern, script, re.IGNORECASE):
             problems.append(f"script matches banned pattern {pattern}")
