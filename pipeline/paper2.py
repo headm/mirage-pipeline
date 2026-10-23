@@ -338,11 +338,15 @@ def build(v: VideoFolder, cfg: Config) -> None:
     cta_start = max(0, dur - CTA_MS)
     b = Builder()
 
-    # Persistent pieces, front-most first: halftone print texture, logo, disclosure.
+    # Persistent pieces, front-most first: halftone print texture, logo, then the disclosure,
+    # which stays up only while the opening disclaimer sentence is spoken.
     b.image(LIB / "paper" / "halftone-overlay.png", (1080, 1920), 0, dur, (540, 960), name="Halftone overlay")
     b.image(ROOT / "brand" / "logo-small.png", (217, 240), 0, dur, (985, 215), width=96, name="Logo")
     size = label_strip(BRAND["disclosure"], tmp / "disclosure.png", size=30)
-    b.image(tmp / "disclosure.png", size, 0, dur, (40 + size[0] / 2, 205), rotation=-1, name="Disclosure")
+    disclaimer_end = next((e for w, _, e in words if re.search(r"[.?!]$", w)), 3000)
+    shown = min(dur, max(2500, disclaimer_end + 400))
+    dl = b.image(tmp / "disclosure.png", size, 0, shown, (40 + size[0] / 2, 205), rotation=-1, name="Disclosure")
+    b.keys(dl, "opacity", [(shown - 250, 100, LINEAR), (shown, 0, LINEAR)])
 
     # Karaoke captions: one PNG per spoken word, each up until the next word starts.
     for g in phrases(words):
