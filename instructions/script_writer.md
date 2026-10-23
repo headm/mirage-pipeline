@@ -89,10 +89,15 @@ action card is added automatically).
 | type | fields | use it for |
 |---|---|---|
 | `banner` | `label` (1-3 words, caps), `sticker` | the hook or a topic, in the first sentence or two |
-| `keyword` | `word` (one word) | one word worth stressing |
-| `title` | `title` (one short lowercase word), `lines` (1-3 short label lines) | a key idea or a list of points |
+| `keyword` | `word` (1-3 words) | a short phrase worth stressing |
+| `title` | `title` (1-3 words, lowercase), `lines` (1-3 short label lines) | a key idea or a list of points |
 | `photo` | `photo` | a place: restaurant, café, salon, shop |
 | `circle` | `circle`, `stickers` (1-3) | money, payments or food, shown floating around you |
+
+Every piece of on-screen text must make sense on its own, to someone who glances at the
+screen without hearing the audio. A single word cut out of a phrase usually doesn't:
+"Dual" or "two" mean nothing alone, "Dual pricing" and "two prices" do. The same goes for
+banner labels and title lines.
 
 Library names (use exactly these):
 

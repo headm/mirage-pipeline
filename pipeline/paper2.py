@@ -141,9 +141,17 @@ def tape_label(text: str, path: Path) -> tuple[int, int]:
     return on_strip("tape-black-1.png", text.upper(), font("Poppins-Bold.ttf", 78), (236, 230, 208), path, 60, 140)
 
 
+def fitted(name: str, text: str, size: int, max_width: int, minimum: int) -> ImageFont.FreeTypeFont:
+    """Largest font size (down to `minimum`) at which `text` fits in `max_width`."""
+    while size > minimum and font(name, size).getlength(text) > max_width:
+        size -= 4
+    return font(name, size)
+
+
 def keyword_tape(word: str, path: Path) -> tuple[int, int]:
-    return on_strip("tape-black-2.png", word, font("DMSerifDisplay-Regular.ttf", 110), (250, 248, 240), path,
-                    55, 170, tracking=4, stroke=3, stroke_fill=(30, 30, 30))
+    f = fitted("DMSerifDisplay-Regular.ttf", word, 110, 860, 64)
+    return on_strip("tape-black-2.png", word, f, (250, 248, 240), path,
+                    55, int(f.size * 1.55), tracking=4, stroke=3, stroke_fill=(30, 30, 30))
 
 
 def label_strip(text: str, path: Path, size: int = 40) -> tuple[int, int]:
@@ -152,12 +160,12 @@ def label_strip(text: str, path: Path, size: int = 40) -> tuple[int, int]:
 
 
 def title_word(word: str, path: Path) -> tuple[int, int]:
-    f = font("DMSerifDisplay-Regular.ttf", 210)
-    w = int(f.getlength(word) + 40)
-    im = Image.new("RGBA", (w, 260), (0, 0, 0, 0))
+    f = fitted("DMSerifDisplay-Regular.ttf", word, 210, 940, 110)
+    w, h = int(f.getlength(word) + 40), int(f.size * 1.25)
+    im = Image.new("RGBA", (w, h), (0, 0, 0, 0))
     d = ImageDraw.Draw(im)
-    d.text((24, 136), word, font=f, anchor="lm", fill=(0, 40, 90, 120))  # soft offset shadow
-    d.text((20, 130), word, font=f, anchor="lm", fill=(244, 238, 200))
+    d.text((24, h / 2 + 6), word, font=f, anchor="lm", fill=(0, 40, 90, 120))  # soft offset shadow
+    d.text((20, h / 2), word, font=f, anchor="lm", fill=(244, 238, 200))
     im.save(path)
     return im.size
 
