@@ -222,8 +222,14 @@ def keyword(b: Builder, m: dict, t0: int, dur: int, tmp: Path) -> None:
 
 
 def title_card(b: Builder, m: dict, t0: int, dur: int, tmp: Path) -> None:
-    card = b.image(LIB / "paper" / "blue-paper-full.jpg", (1080, 1920), t0, dur, (540, 960), name="Title paper")
-    b.keys(card, "positionX", [(0, 1620, LINEAR), (300, 540, POP), (dur - 350, 540, LINEAR), (dur, -560, LINEAR)])
+    # Card torn down both sides: the torn left edge leads it in from the right, the torn right
+    # edge trails it out to the left. Its canvas is wider than the frame, so neither tear shows
+    # once it has settled.
+    card_path = LIB / "paper" / "blue-paper-card.png"
+    cw, ch = Image.open(card_path).size
+    card = b.image(card_path, (cw, ch), t0, dur, (540, 960), name="Title paper")
+    b.keys(card, "positionX", [(0, 540 + cw - 260, LINEAR), (300, 540, POP), (dur - 350, 540, LINEAR),
+                               (dur, 540 - cw + 260, LINEAR)])
     size = title_word(m["title"], tmp / f"title-{t0}.png")
     tw = b.image(tmp / f"title-{t0}.png", size, t0 + 300, dur - 300, (540, 700), name="Title word")
     b.pop_in(tw, 100, 0, dur - 300)
@@ -238,11 +244,9 @@ def title_card(b: Builder, m: dict, t0: int, dur: int, tmp: Path) -> None:
         b.keys(ll, "positionX", [(dur - delay - 350, 540, LINEAR), (dur - delay, -560, LINEAR)])
         b.stop_motion(ll)
     wipe = LIB / "paper" / "strip-newspaper.png"
-    wl = b.image(wipe, (1400, 200), t0, 420, (540, 960), rotation=-12, name="Title wipe in")
+    wl = b.image(wipe, Image.open(wipe).size, t0, 420, (540, 960), rotation=-12, name="Title wipe in")
     b.keys(wl, "positionX", [(0, 1900, LINEAR), (420, -900, LINEAR)])
     b.stop_motion(wl)
-    edge = b.image(LIB / "paper" / "wipe-torn-edge.png", (260, 1920), t0 + dur - 380, 380, (1210, 960), name="Title wipe out")
-    b.keys(edge, "positionX", [(0, 1210, LINEAR), (380, -140, LINEAR)])
 
 
 def photo(b: Builder, m: dict, t0: int, dur: int, tmp: Path) -> None:

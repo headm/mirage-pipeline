@@ -97,10 +97,11 @@ def photos(src: Path) -> None:
         im.save(dest / (f.stem.removeprefix("photo_") + ".jpg"), quality=88)
         # Grayscale variant with torn white border, as in the Paper II photo inserts.
         gray = ImageOps.grayscale(im).convert("RGB")
-        frame = Image.new("RGBA", (1240, 940), (0, 0, 0, 0))
-        paper = Image.new("RGBA", frame.size, (250, 248, 242, 255))
-        frame.paste(paper, mask=ragged_mask(frame.size, "tblr", depth=18))
-        frame.paste(gray, (20, 20), ragged_mask(gray.size, "tblr", depth=8))
+        white = Image.open(src / "paper_white-crumpled.jpg")
+        frame = Image.new("RGBA", (1200 + 120, 900 + 120), (0, 0, 0, 0))
+        frame.paste(gray, (60, 60))
+        for k, side in enumerate(("bottom", "right", "top", "left")):
+            frame = tear_side(frame, white, side, margin=90, seed=50 + 7 * k, big=22, mid=10, core=(10, 28), shadow=0.3)
         frame.save(dest / (f.stem.removeprefix("photo_") + "-torn.png"))
         print("photo", f.stem)
 
@@ -201,48 +202,69 @@ def tear_profile(width: int, base: float, seed: int, big: float, mid: float, fin
     return y
 
 
-def torn_banner(paper: Image.Image, white_src: Image.Image, size: tuple[int, int] = (1080, 900)) -> Image.Image:
-    """Blue paper torn across the bottom, like the Paper II sample: a wide white fibrous core with
-    jagged peaks, fuzzy fibre edges on both sides of the core, and a soft shadow on the footage.
-    The layer is transparent below the tear, so the edge you see is the tear itself."""
-    import numpy as np
-    w, h = size
-    yy = np.arange(h, dtype=np.float32)[:, None]
-    # Upper edge (blue surface) and lower edge (white core): jagged and independent.
-    blue_edge = tear_profile(w, 620, 11, big=60, mid=26, fine=0.2) + np.linspace(-20, 20, w)
-    core = 44 + 14 * np.sin(np.arange(w) / 83.0 + 0.7) + 8 * np.sin(np.arange(w) / 29.0)
-    white_edge = blue_edge + np.clip(core, 26, 72) + tear_profile(w, 0, 12, big=16, mid=12, fine=0.3)
+# Rotation (counter-clockwise degrees) that turns the given side into the bottom edge.
+TO_BOTTOM = {"bottom": 0, "right": -90, "top": 180, "left": 90}
 
-    # Per-pixel fibre noise makes both boundaries fuzzy rather than cut.
-    fuzz = np.asarray(noise_field(size, 1.0, 21), dtype=np.float32) / 255 - 0.5
-    clumps = np.asarray(noise_field(size, 3.0, 22), dtype=np.float32) / 255 - 0.5   # cottony, not hairlines
+
+def tear_side(img: Image.Image, white_src: Image.Image, side: str, margin: int, seed: int,
+              big: float = 60, mid: float = 26, core: tuple[float, float] = (26, 72),
+              shadow: float = 0.40) -> Image.Image:
+    """Tear one side of an RGBA piece, like the Paper II sample: the surface tears back to a white
+    fibrous core with jagged peaks, both edges of the core are fuzzy, and a soft shadow falls
+    outward. `margin` is how far in from that side the tear runs; everything beyond it becomes
+    transparent, so the layer's edge is the tear itself, never a straight cut."""
+    import numpy as np
+    angle = TO_BOTTOM[side]
+    rot = img.convert("RGBA").rotate(angle, expand=True)
+    w, h = rot.size
+    yy = np.arange(h, dtype=np.float32)[:, None]
+    lo, hi = core
+    blue_edge = tear_profile(w, h - margin, seed, big=big, mid=mid, fine=0.2) + np.linspace(-big / 3, big / 3, w)
+    width = (lo + hi) / 2 + (hi - lo) / 4 * np.sin(np.arange(w) / 83.0 + seed) + (hi - lo) / 8 * np.sin(np.arange(w) / 29.0)
+    white_edge = blue_edge + np.clip(width, lo, hi) + tear_profile(w, 0, seed + 1, big=big / 4, mid=mid / 2, fine=0.3)
+
+    fuzz = np.asarray(noise_field((w, h), 1.0, seed + 2), dtype=np.float32) / 255 - 0.5
+    clumps = np.asarray(noise_field((w, h), 3.0, seed + 3), dtype=np.float32) / 255 - 0.5
 
     def soft(edge, amount):
         return np.clip((edge[None, :] - yy) / 1.5 + (0.15 * fuzz + clumps) * amount, 0, 1)
 
-    blue_a = soft(blue_edge, 5.0)
-    core_a = soft(white_edge, 9.0)
+    src = np.asarray(rot, dtype=np.float32)
+    src_rgb, src_a = src[..., :3], src[..., 3] / 255
+    # The core only exists where the piece exists across the tear (not past its other edges).
+    across = np.clip(src_a.max(axis=0, keepdims=True), 0, 1)
+    surf_a = soft(blue_edge, 5.0) * src_a
+    core_a = soft(white_edge, 9.0) * across * (1 - soft(blue_edge, 5.0) * (1 - src_a))
 
-    shadow = Image.fromarray((core_a * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(8))
-    shadow_a = np.roll(np.asarray(shadow, dtype=np.float32) / 255, 8, axis=0) * 0.40
+    sh = Image.fromarray((core_a * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(8))
+    shadow_a = np.roll(np.asarray(sh, dtype=np.float32) / 255, 8, axis=0) * shadow
 
-    # White core: crumpled shading, slightly warm grey, darker just under the blue lip.
-    tex = np.asarray(ImageOps.grayscale(cover(white_src, size)), dtype=np.float32)
+    tex = np.asarray(ImageOps.grayscale(cover(white_src, (w, h))), dtype=np.float32)
     tex = (tex - tex.mean()) / max(1e-6, tex.std())
     lip = np.clip(1 - (yy - blue_edge[None, :]) / 10, 0, 1) * np.clip((yy - blue_edge[None, :]) / 2 + 1, 0, 1)
     shade = 240 + tex * 6 - lip * 18
     white_rgb = np.dstack([shade + 2, shade, shade - 4])
-    blue_rgb = np.asarray(paper.convert("RGB").crop((0, 0, w, h)), dtype=np.float32)
 
-    # Composite bottom-up: shadow, white core, blue surface.
     rgb = white_rgb * core_a[..., None]
     a = core_a + shadow_a * (1 - core_a)
-    rgb = rgb * (1 - blue_a[..., None]) + blue_rgb * blue_a[..., None]
-    a = blue_a + a * (1 - blue_a)
-    # Un-premultiply so the shadow stays dark and edges keep their colour.
-    rgb_out = np.where(a[..., None] > 1e-3, rgb / np.maximum(a[..., None], 1e-3), 0)
-    out = np.dstack([np.clip(rgb_out, 0, 255), np.clip(a, 0, 1) * 255]).astype(np.uint8)
-    return Image.fromarray(out, "RGBA")
+    rgb = rgb * (1 - surf_a[..., None]) + src_rgb * surf_a[..., None]
+    a = surf_a + a * (1 - surf_a)
+    rgb = np.where(a[..., None] > 1e-3, rgb / np.maximum(a[..., None], 1e-3), 0)
+    out = Image.fromarray(np.dstack([np.clip(rgb, 0, 255), np.clip(a, 0, 1) * 255]).astype(np.uint8), "RGBA")
+    return out.rotate(-angle, expand=True)
+
+
+def torn_banner(paper: Image.Image, white_src: Image.Image, size: tuple[int, int] = (1080, 900)) -> Image.Image:
+    """Top banner: blue paper torn across the bottom, transparent below the tear."""
+    return tear_side(paper.crop((0, 0) + size), white_src, "bottom", margin=size[1] - 620, seed=11)
+
+
+def torn_card(paper: Image.Image, white_src: Image.Image, pad: int = 230) -> Image.Image:
+    """Full-screen card torn down its left and right edges. The canvas is `pad` wider on each side
+    so the tears sit just offscreen when the card is centred, and lead/trail when it slides."""
+    assert paper.width == 1080 + 2 * pad, "generate the paper 2 * pad wider than the frame"
+    wide = tear_side(paper.convert("RGBA"), white_src, "right", margin=pad - 90, seed=31)
+    return tear_side(wide, white_src, "left", margin=pad - 90, seed=37)
 
 
 def paper(src: Path) -> None:
@@ -250,18 +272,16 @@ def paper(src: Path) -> None:
     dest.mkdir(parents=True, exist_ok=True)
     full = blue_paper(src)
     full.save(dest / "blue-paper-full.jpg", quality=92)
+    wide = blue_paper(src, size=(1080 + 2 * 230, 1920))
+    white_photo = Image.open(src / "paper_white-crumpled.jpg")
+    torn_card(wide, white_photo).save(dest / "blue-paper-card.png")
+    print("paper blue-paper-card")
     print("paper blue-paper-full")
 
     # Top banner: blue paper torn along the bottom; the layer's alpha follows the tear itself.
-    torn_banner(full, Image.open(src / "paper_white-crumpled.jpg")).save(dest / "banner-top.png")
+    torn_banner(full, white_photo).save(dest / "banner-top.png")
     print("paper banner-top")
 
-    # Side wipe: a tall torn white edge that slides across the frame.
-    wipe = Image.new("RGBA", (260, 1920), (0, 0, 0, 0))
-    wipe.paste(cover(Image.open(src / "paper_white-crumpled-2.jpg").convert("RGB"), (260, 1920)),
-               (0, 0), ragged_mask((260, 1920), "l", depth=60, step=16))
-    wipe.save(dest / "wipe-torn-edge.png")
-    print("paper wipe-torn-edge")
 
     # Tape strips and label-maker strips.
     black = Image.open(src / "paper_black-crumpled.jpg").convert("RGB")
@@ -278,8 +298,10 @@ def paper(src: Path) -> None:
     lab.save(dest / "label-white.png")
     news = Image.open(src / "paper_newspaper.jpg").convert("RGB")
     strip = ImageOps.colorize(ImageOps.grayscale(cover(news, (1400, 200))), (60, 40, 30), (235, 220, 190))
-    ns = Image.new("RGBA", strip.size, (0, 0, 0, 0))
-    ns.paste(strip, (0, 0), ragged_mask(strip.size, "tb", depth=16, step=9))
+    ns = Image.new("RGBA", (strip.width, strip.height + 120), (0, 0, 0, 0))
+    ns.paste(strip, (0, 60))
+    ns = tear_side(ns, white_photo, "bottom", margin=80, seed=41, big=20, mid=10, core=(8, 22), shadow=0.3)
+    ns = tear_side(ns, white_photo, "top", margin=80, seed=43, big=20, mid=10, core=(8, 22), shadow=0.3)
     ns.save(dest / "strip-newspaper.png")
     print("paper tape, label, newspaper strip")
 
