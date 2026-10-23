@@ -9,6 +9,8 @@
     "headline": "Montserrat Bold",
     "body": "Roboto"
   },
-  "disclosure": "#ad · Paid partnership with Aria Payments",
+  "disclosure": "Unpaid partner of Aria Payments",
+  "logo": "brand/logo-white.png",
+  "font_file": "brand/font.ttf",
   "cta": "Free statement analysis · link in bio"
 }

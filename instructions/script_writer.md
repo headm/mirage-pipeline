@@ -49,9 +49,13 @@ that isn't here, leave it out.
 
 ## Required disclosure
 
-The first line of the script must make the partnership clear in plain words, for example
-"Quick heads up, I partner with Aria Payments." The caption must start with `#ad` and
-mention the partnership. (The template also shows an on-screen disclosure.)
+The partnership is unpaid. The first line of the script must still make it clear in plain
+words, for example "Quick heads up: I partner with Aria Payments, and I'm not paid for this."
+The caption must start with "Unpaid partner of Aria Payments." Do not use `#ad`, since
+nothing is paid. (The template also shows an on-screen disclosure.)
+
+If the arrangement changes (a commission, free service, or any other benefit), the
+disclosure must change to a paid one with `#ad` before the next video goes out.
 
 ## Shape of a script
 
@@ -70,7 +74,7 @@ mention the partnership. (The template also shows an on-screen disclosure.)
   "topic_id": "<id from topics.csv>",
   "hook": "<the on-screen hook text, 3-9 words>",
   "script": "<the full spoken script>",
-  "caption": "#ad <caption mentioning the Aria Payments partnership, under 150 characters>",
+  "caption": "Unpaid partner of Aria Payments. <rest of caption, under 150 characters in total>",
   "hashtags": ["smallbusiness", "restaurantowner", "..."],
   "claims": ["<each Aria fact used, copied from the list above>"]
 }
