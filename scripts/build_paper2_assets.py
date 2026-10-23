@@ -120,12 +120,77 @@ def circles(src: Path) -> None:
         print("circle", f.stem)
 
 
+PAPER_BLUE = (40, 101, 192)  # measured from the Paper II sample's title card
+
+
+def noise_field(size: tuple[int, int], blur: float, seed: int) -> Image.Image:
+    """Smooth random field in 0..255, built small and scaled up so large blotches stay cheap."""
+    rnd = random.Random(seed)
+    w, h = size
+    k = max(1, int(blur / 4))
+    small = Image.new("L", (w // k + 1, h // k + 1))
+    small.putdata([rnd.randint(0, 255) for _ in range(small.width * small.height)])
+    field = small.resize(size, Image.BICUBIC).filter(ImageFilter.GaussianBlur(blur / 2))
+    return ImageOps.autocontrast(field)
+
+
+def blue_paper(src: Path, size: tuple[int, int] = (1080, 1920)) -> Image.Image:
+    """Matte royal-blue paper like the sample: faceted crumple shading (softened, no gloss),
+    broad mottling, fibre speckle, a printed dot screen and a few white fibre flecks."""
+    import numpy as np
+    w, h = size
+    def field(img):  # 0..255 image -> -1..1 array
+        a = np.asarray(img, dtype=np.float32) / 127.5 - 1
+        return a / max(1e-6, np.abs(a).max())
+    photo = Image.open(src / "paper_white-crumpled.jpg")
+    zoom = photo.crop((int(photo.width * 0.3), int(photo.height * 0.2), int(photo.width * 0.7), int(photo.height * 0.8)))
+    crumple = ImageOps.autocontrast(ImageOps.grayscale(cover(zoom, size)), cutoff=2)  # zoomed in: fewer, bigger folds
+    facets = field(crumple.filter(ImageFilter.GaussianBlur(1.6)))
+    facets = np.clip(facets * 1.4, -1, 1)                       # flatten the brightest highlights
+    blotches = field(noise_field(size, 260, 1))
+    mottling = field(noise_field(size, 40, 2))
+    speckle = field(noise_field(size, 1.0, 3))
+    yy, xx = np.mgrid[0:h, 0:w].astype(np.float32)
+    vignette = -np.clip(((xx / w - 0.5) ** 2 * 1.6 + (yy / h - 0.5) ** 2 * 1.2) * 1.4 - 0.08, 0, 1)
+    lum = 0.24 * facets + 0.26 * blotches + 0.08 * mottling + 0.12 * speckle + 0.35 * vignette
+
+    # Shade between a deep and a pale, slightly greyed blue; the midpoint is the sample's PAPER_BLUE.
+    dark = np.array((16, 60, 172), dtype=np.float32)
+    light = np.array((68, 140, 236), dtype=np.float32)
+    t = np.clip(0.5 + lum * 1.1, 0, 1)[..., None]
+    rgb = dark * (1 - t) + light * t
+
+    # Printed dot screen: darker dots on a 10 px diagonal grid.
+    dots = Image.new("L", size, 0)
+    d = ImageDraw.Draw(dots)
+    jitter = random.Random(5)
+    for y in range(0, h, 10):
+        for x in range((y // 10) % 2 * 5, w, 10):
+            r = 3.4 + jitter.uniform(-0.6, 0.6)
+            d.ellipse((x, y, x + r, y + r), fill=jitter.randint(170, 255))
+    dot = np.asarray(dots.filter(ImageFilter.GaussianBlur(0.7)), dtype=np.float32)[..., None] / 255
+    rgb = rgb * (1 - 0.18 * dot)
+
+    # Light fibre speckle and a few short white flecks.
+    rnd = random.Random(4)
+    flecks = Image.new("L", size, 0)
+    fd = ImageDraw.Draw(flecks)
+    for _ in range(1600):
+        x, y = rnd.randint(0, w), rnd.randint(0, h)
+        fd.point((x, y), fill=rnd.randint(40, 120))
+    for _ in range(12):
+        x, y = rnd.randint(0, w), rnd.randint(0, h)
+        fd.line((x, y, x + rnd.randint(-40, 40), y + rnd.randint(-12, 12)), fill=rnd.randint(110, 190), width=2)
+    f = np.asarray(flecks.filter(ImageFilter.GaussianBlur(0.8)), dtype=np.float32)[..., None] / 255
+    rgb = rgb * (1 - f) + np.array([200, 222, 245], dtype=np.float32) * f
+    return Image.fromarray(rgb.astype(np.uint8))
+
+
 def paper(src: Path) -> None:
     dest = OUT / "paper"
     dest.mkdir(parents=True, exist_ok=True)
-    blue = Image.open(src / "paper_blue-crumpled.jpg").convert("RGB")
-    full = duotone(cover(blue, (1080, 1920)), (0, 70, 160), (60, 160, 245))
-    full.save(dest / "blue-paper-full.jpg", quality=90)
+    full = blue_paper(src)
+    full.save(dest / "blue-paper-full.jpg", quality=92)
     print("paper blue-paper-full")
 
     # Top banner: blue paper with a white torn strip along the bottom edge.
