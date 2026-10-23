@@ -226,15 +226,18 @@ def banner(b: Builder, m: dict, t0: int, dur: int, tmp: Path) -> None:
     b.keys(lid, "positionY", [(0, -h / 2, LINEAR), (320, h / 2, POP), (dur - 320, h / 2, LINEAR), (dur, -h / 2 - 40, LINEAR)])
     b.stop_motion(lid)
     size = tape_label(m["label"], tmp / f"tape-{t0}.png")
-    tl = b.image(tmp / f"tape-{t0}.png", size, t0 + 250, dur - 250, (520, 300), rotation=-4, name="Banner label")
+    # Label sits left; the sticker overlaps only its right end, like the sample's mic on its tape.
+    label_cx = 50 + size[0] / 2
+    sticker_cx = min(960, 50 + size[0] + 90)
+    tl = b.image(tmp / f"tape-{t0}.png", size, t0 + 250, dur - 250, (label_cx, 300), rotation=-4, name="Banner label")
     b.keys(tl, "positionY", [(dur - 570, 300, LINEAR), (dur - 250, -300, LINEAR)])
     b.pop_in(tl, 100, 0, dur - 250)
     b.stop_motion(tl)
     if m.get("sticker"):
         sp = LIB / "stickers" / f"{m['sticker']}.png"
         ss = Image.open(sp).size
-        sl = b.image(sp, ss, t0 + 400, dur - 400, (820, 260), width=330, rotation=10, name="Banner sticker")
-        sc = scale_for(ss, 330)
+        sl = b.image(sp, ss, t0 + 400, dur - 400, (sticker_cx, 330), width=260, rotation=10, name="Banner sticker")
+        sc = scale_for(ss, 260)
         b.pop_in(sl, sc, 0, dur - 400)
         b.keys(sl, "rotation", [(0, 18, LINEAR), (340, 10, POP), (dur - 400, 4, LINEAR)])
         b.stop_motion(sl)
@@ -369,7 +372,7 @@ def build(v: VideoFolder, cfg: Config) -> None:
     # label, which is up only while the spoken disclosure sentence (after the hook) is said.
     b.image(LIB / "paper" / "halftone-overlay.png", (1080, 1920), 0, dur, (540, 960), name="Halftone overlay")
     b.image(ROOT / "brand" / "logo-small.png", (217, 240), 0, dur, (985, 215), width=96, name="Logo")
-    size = label_strip(BRAND["disclosure"], tmp / "disclosure.png", size=30)
+    size = label_strip(BRAND["disclosure"], tmp / "disclosure.png", size=25)
     d_start, d_end = disclosure_window(words)
     d_start, shown = max(0, d_start - 150), max(2000, d_end - d_start + 550)
     dl = b.image(tmp / "disclosure.png", size, d_start, shown, (40 + size[0] / 2, 205), rotation=-1, name="Disclosure")
