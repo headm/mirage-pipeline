@@ -69,5 +69,8 @@ class Store:
             if "directory not found" not in str(e) and "no such file" not in str(e):
                 raise
 
+    def purge(self, rel: str) -> None:
+        self._rclone("purge", self._path(rel))
+
     def mkdir(self, rel: str) -> None:
         self._rclone("mkdir", self._path(rel))
