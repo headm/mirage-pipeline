@@ -106,18 +106,37 @@ def photos(src: Path) -> None:
         print("photo", f.stem)
 
 
-def circles(src: Path) -> None:
+def circle_mask(im: Image.Image) -> Image.Image:
+    toned = ImageOps.colorize(im, (20, 90, 110), (236, 232, 205))  # teal ink on cream, like the sample
+    mask = Image.new("L", (900, 900), 0)
+    ImageDraw.Draw(mask).ellipse((0, 0, 899, 899), fill=255)
+    out = toned.convert("RGBA")
+    out.putalpha(mask)
+    return out
+
+
+def circles(src: Path, session) -> None:
+    """circle_*.jpg: the whole photo, halftoned. circlecut_*.jpg: the object is cut out, its tones
+    spread so the dots keep its shape, and set on a plain cream disc (for dark or busy photos)."""
     dest = OUT / "circles"
     dest.mkdir(parents=True, exist_ok=True)
     for f in sorted(src.glob("circle_*.jpg")):
         im = cover(Image.open(f).convert("RGB"), (900, 900))
-        dots = halftone(im)
-        toned = ImageOps.colorize(dots, (20, 90, 110), (236, 232, 205))  # teal ink on cream, like the sample
-        mask = Image.new("L", (900, 900), 0)
-        ImageDraw.Draw(mask).ellipse((0, 0, 899, 899), fill=255)
-        out = toned.convert("RGBA")
-        out.putalpha(mask)
-        out.save(dest / (f.stem.removeprefix("circle_") + ".png"))
+        circle_mask(halftone(im)).save(dest / (f.stem.removeprefix("circle_") + ".png"))
+        print("circle", f.stem)
+    for f in sorted(src.glob("circlecut_*.jpg")):
+        cut = remove(fit_width(Image.open(f).convert("RGB"), 1400), session=session)
+        alpha = cut.getchannel("A").point(lambda a: 0 if a < 90 else a)
+        cut = cut.crop(alpha.getbbox())
+        alpha = alpha.crop(alpha.getbbox())
+        gray = ImageOps.equalize(ImageOps.grayscale(cut.convert("RGB")), mask=alpha.point(lambda a: 255 if a > 128 else 0))
+        gray = gray.point(lambda v: int(255 * (v / 255) ** 1.15))   # a touch darker so it holds up as dots
+        obj = Image.merge("RGBA", (gray, gray, gray, alpha))
+        obj.thumbnail((560, 470), Image.LANCZOS)
+        disc = Image.new("RGBA", (900, 900), (240, 238, 228, 255))
+        # Upper part of the disc: in the edit the speaker's head covers its lower half.
+        disc.alpha_composite(obj, ((900 - obj.width) // 2, 70))
+        circle_mask(halftone(disc.convert("RGB"), cell=6)).save(dest / (f.stem.removeprefix("circlecut_") + ".png"))
         print("circle", f.stem)
 
 
@@ -321,7 +340,8 @@ if __name__ == "__main__":
     if len(sys.argv) != 2:
         sys.exit(__doc__)
     src = Path(sys.argv[1])
-    stickers(src, new_session("isnet-general-use"))
+    session = new_session("isnet-general-use")
+    stickers(src, session)
     photos(src)
-    circles(src)
+    circles(src, session)
     paper(src)

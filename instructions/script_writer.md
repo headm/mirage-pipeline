@@ -94,7 +94,7 @@ Library names (use exactly these):
   terminal-blue, terminal-receipt
 - photos: cafe-sunlit, cafe-tables, cafe-window, checkout-card, food-truck-night, kitchen,
   salon-chairs, salon-studio, storefront-pink, storefront-red, storefront-striped
-- circles: main-street, main-street-dusk, pizza, pizza-board, sky-cloud, sky-clouds
+- circles: main-street-dusk, pizza, pizza-board, register, sky-cloud, sky-clouds
 
 On-screen words follow the same rules as the script: no rates, no "cheaper than", no
 competitor names.
