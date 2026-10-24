@@ -53,6 +53,7 @@ export PATH="$ROOT/.venv/bin:\$HOME/.local/bin:\$PATH"
 export TSRCT="$TSRCT"
 export RVM_MODEL="$ROOT/$RVM"
 export FONT="$ROOT/brand/font.ttf"
+export TSRCT_FFMPEG="$(command -v ffmpeg)"
 EOF
 # shellcheck disable=SC1091
 source tools/env.sh

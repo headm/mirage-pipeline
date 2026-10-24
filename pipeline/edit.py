@@ -4,6 +4,7 @@ Layout keeps text out of TikTok's covered areas: the top bar (~170 px), the righ
 button column, and the caption/description area at the bottom (~ last 400 px).
 """
 import json
+import os
 import re
 import subprocess
 from pathlib import Path
@@ -84,6 +85,13 @@ class Tsrct:
         return json.loads(lines[-1]) if lines else {}
 
 
+def encoder_args() -> list[str]:
+    """Tesseract's Linux build has no H.264 encoder of its own; there it hands frames to the
+    system ffmpeg (set TSRCT_FFMPEG, as cloud_setup.sh does). On a Mac the built-in one works."""
+    path = os.environ.get("TSRCT_FFMPEG")
+    return ["--encoder-backend", "external-ffmpeg-command", "--ffmpeg-path", path] if path else []
+
+
 def build(v: VideoFolder, cfg: Config) -> None:
     script = json.loads(v.path("script.json").read_text())
     alignment = json.loads(v.path("alignment.json").read_text())
@@ -150,4 +158,4 @@ def build(v: VideoFolder, cfg: Config) -> None:
     t("project", "apply", "-p", str(project), "--actions", str(actions_file))
 
     t("preview", "-p", str(project), "-t", "0.6", "-o", str(v.local / "cover.png"))
-    t("export", "-p", str(project), "-o", str(v.local / "final.mp4"), "--resolution", "1080p", "--fps", "30")
+    t("export", "-p", str(project), "-o", str(v.local / "final.mp4"), "--resolution", "1080p", "--fps", "30", *encoder_args())

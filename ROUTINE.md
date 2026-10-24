@@ -40,8 +40,14 @@ out after about 10 minutes, so run it in the background and check on it:
 source tools/env.sh && nohup python3 -u -m pipeline produce <id> > work/<id>.log 2>&1 &
 ```
 
-Then, every few minutes, `tail -5 work/<id>.log` until it prints `queued` or an error. Each check
-must be a single short command (use `sleep 240; tail -5 work/<id>.log`).
+Then wait for it with a background wait loop (long `sleep` commands are blocked), and act when
+it reports back:
+
+```bash
+until tail -3 work/<id>.log | grep -qiE 'queued|error|rejected|Traceback'; do sleep 15; done; tail -12 work/<id>.log
+```
+
+(run that with `run_in_background: true`).
 
 - If the log says `script.json rejected`, fix `script.json` as the message says and run produce
   again. Finished steps are skipped, so re-running is safe and never pays twice for a render.
