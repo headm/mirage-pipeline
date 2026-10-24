@@ -62,30 +62,20 @@ def avatar(v: VideoFolder, cfg: Config) -> None:
     api = "https://api.mirage.app/v1"
     headers = {"x-api-key": os.environ["MIRAGE_API_KEY"]}
 
-    # Save the job id before waiting, so a crash resumes this render instead of paying for another.
-    if v.done("mirage_job.txt"):
-        job = v.path("mirage_job.txt").read_text().strip()
-    else:
-        reference = v.store.download("refs/reference.mp4", cfg.work_dir / "reference.mp4") \
-            if not (cfg.work_dir / "reference.mp4").exists() else cfg.work_dir / "reference.mp4"
-        with v.path("voice.mp3").open("rb") as a, reference.open("rb") as r:
-            resp = requests.post(f"{api}/videos", headers=headers, data={"model": "mirage-avatar-x"},
-                                 files={"audio_reference": a, "video_reference": r}, timeout=300)
-        if not resp.ok:
-            raise RuntimeError(f"Mirage rejected the render {resp.status_code}: {resp.text}")
-        job = resp.json()["id"]
-        (v.local / "mirage_job.txt").write_text(job)
-        v.save("mirage_job.txt")
+    reference = v.store.download("refs/reference.mp4", cfg.work_dir / "reference.mp4") \
+        if not (cfg.work_dir / "reference.mp4").exists() else cfg.work_dir / "reference.mp4"
+    with v.path("voice.mp3").open("rb") as a, reference.open("rb") as r:
+        resp = requests.post(f"{api}/videos", headers=headers, data={"model": "mirage-avatar-x"},
+                             files={"audio_reference": a, "video_reference": r}, timeout=300)
+    if not resp.ok:
+        raise RuntimeError(f"Mirage rejected the render {resp.status_code}: {resp.text}")
+    job = resp.json()["id"]
 
     deadline = time.time() + 30 * 60
     while True:
         status = requests.get(f"{api}/videos/{job}", headers=headers, timeout=30).json()
         if status["status"] == "COMPLETE":
             break
-        if status["status"] in ("FAILED", "CANCELLED"):
-            # A dead job never recovers; forget it so the next produce submits a new render.
-            v.store.delete_file(f"{v.rel}/mirage_job.txt")
-            (v.local / "mirage_job.txt").unlink(missing_ok=True)
         if status["status"] in ("FAILED", "CANCELLED") or time.time() > deadline:
             raise RuntimeError(f"Mirage render {job} ended as {status['status']}: {status.get('error')}")
         time.sleep(15)

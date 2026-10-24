@@ -1,8 +1,8 @@
 """Command line: python -m pipeline <command>
 
     init            create the cloud folder layout and a starter topics.csv
-    status          show topics left, videos in progress, and what is in ready/
-    plan            list videos to work on: unfinished ones first, then one new topic
+    status          show topics left and what is in ready/
+    plan            start one new video on the next topic and print what it needs
     produce <id>    run the production steps for one video; finished videos land in ready/
     fetch-assets    download the Paper II image library from the cloud folder into brand/paper2/
     review <id>     automatic checks of a finished edit, plus a contact sheet of frames to look at
@@ -34,16 +34,10 @@ def init(store: Store) -> None:
     print(f"layout ready at {store.remote}")
 
 
-def unfinished(store: Store) -> list[str]:
-    return [v for v in store.list_dirs("videos") if "caption.txt" not in store.list_files(f"videos/{v}")]
-
-
 def status(store: Store, cfg: config.Config) -> None:
     rows = topics.load(store, cfg.work_dir) if store.exists("topics.csv") else []
     ready = store.list_dirs("ready")
-    in_progress = unfinished(store)
     print(f"topics:       {len(rows)} ({sum(1 for r in rows if topics.times_used(r) == 0)} never used)")
-    print(f"in progress:  {len(in_progress)} {in_progress}")
     print(f"ready:        {len(ready)} {ready}")
 
 
@@ -56,7 +50,7 @@ def previous_videos(store: Store, cfg: config.Config, topic_id: str, exclude: st
         if vid == exclude or not same_topic:
             continue
         v = VideoFolder(store, cfg.work_dir, vid)
-        if not v.done("script.json"):
+        if not v.done("caption.txt"):  # failed videos never went out
             continue
         s = json.loads(v.path("script.json").read_text())
         out.append({"id": vid, "hook": s.get("hook"),
@@ -77,26 +71,18 @@ def new_video_id(store: Store, today: date, topic_id: str) -> str:
 
 
 def plan(store: Store, cfg: config.Config) -> None:
+    """Every run starts a fresh video. A video that failed in an earlier run is left as it is."""
     today = date.today()
-    ids = unfinished(store)
     topic = topics.take_next(store, cfg.work_dir, today)
-    if topic:
-        video_id = new_video_id(store, today, topic["id"])
-        v = VideoFolder(store, cfg.work_dir, video_id)
-        (v.local / "topic.json").write_text(json.dumps(topic, indent=2))
-        v.save("topic.json")
-        ids.append(video_id)
-    else:
-        print("WARNING: no usable topics in topics.csv (all expired?)", file=sys.stderr)
-
-    todo = []
-    for video_id in ids:
-        v = VideoFolder(store, cfg.work_dir, video_id)
-        topic = json.loads(v.path("topic.json").read_text())
-        todo.append({"id": video_id, "needs_script": not v.done("script.json"),
-                     "script_path": str(v.local / "script.json"), "topic": topic,
-                     "previous_videos_on_this_topic": previous_videos(store, cfg, topic["id"], video_id)})
-    print(json.dumps(todo, indent=2))
+    if not topic:
+        sys.exit("no usable topics in topics.csv (all expired?)")
+    video_id = new_video_id(store, today, topic["id"])
+    v = VideoFolder(store, cfg.work_dir, video_id)
+    (v.local / "topic.json").write_text(json.dumps(topic, indent=2))
+    v.save("topic.json")
+    print(json.dumps({"id": video_id, "script_path": str(v.local / "script.json"), "topic": topic,
+                      "previous_videos_on_this_topic": previous_videos(store, cfg, topic["id"], video_id)},
+                     indent=2))
 
 
 ASSET_FOLDERS = ("stickers", "photos", "circles", "paper")

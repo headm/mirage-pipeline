@@ -19,12 +19,14 @@ Run `source tools/env.sh` again at the start of every later shell command that r
 source tools/env.sh && python3 -m pipeline plan
 ```
 
-This prints a JSON list of videos to work on: unfinished videos from earlier runs first, then
-one new topic. Never move, rename or delete anything in `ready/`; that folder is the owner's.
+This starts one new video and prints its `id`, `topic`, `script_path` and
+`previous_videos_on_this_topic`. Each run makes exactly this one video; videos that failed in
+earlier runs are never picked up again. Never move, rename or delete anything in `ready/`;
+that folder is the owner's.
 
 ## 3. Write scripts
 
-For each video with `"needs_script": true`:
+For the planned video:
 
 1. Read `instructions/script_writer.md` in full, every time.
 2. Write `script.json` at the given `script_path`, for the given `topic`. If
@@ -51,13 +53,13 @@ until tail -3 work/<id>.log | grep -qiE 'finished, in ready|error|rejected|Trace
 (run that with `run_in_background: true`).
 
 - If the log says `script.json rejected`, fix `script.json` as the message says and run produce
-  again. Finished steps are skipped, so re-running is safe and never pays twice for a render.
-- For any other error, run produce once more. If it fails again, stop working on that video and
-  report the error.
+  again (nothing has been paid for yet at that point).
+- For any other error, stop: don't retry. Report the exact error; the video is simply not made
+  today, and tomorrow's run starts a new one.
 
 ## 5. Review each finished video (and fix what you can)
 
-For each video that produce reported as `finished, in ready/`:
+When produce reports `finished, in ready/`:
 
 ```bash
 source tools/env.sh && python3 -m pipeline review <id>
@@ -94,6 +96,6 @@ example a sticker just touching a label's end) need no fix; mention them in the 
 source tools/env.sh && python3 -m pipeline status
 ```
 
-End with a short summary: which videos were finished into `ready/` (id, topic, hook), what each
+End with a short summary: whether the video was finished into `ready/` (id, topic, hook), what the
 review found and fixed, anything still wrong that needs a manual fix, and any errors with
 the exact message.
