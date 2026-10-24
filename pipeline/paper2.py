@@ -139,7 +139,9 @@ def on_strip(strip: str, text: str, fnt, fill, path: Path, pad: int, height: int
 
 
 def tape_label(text: str, path: Path) -> tuple[int, int]:
-    return on_strip("tape-black-1.png", text.upper(), font("Poppins-Bold.ttf", 78), (236, 230, 208), path, 60, 140)
+    # Leaves room for the sticker that overlaps the label's right end.
+    f = fitted("Poppins-Bold.ttf", text.upper(), 78, 660, 44)
+    return on_strip("tape-black-1.png", text.upper(), f, (236, 230, 208), path, 60, int(f.size * 1.8))
 
 
 def fitted(name: str, text: str, size: int, max_width: int, minimum: int) -> ImageFont.FreeTypeFont:
@@ -214,12 +216,13 @@ class Builder:
         self.actions.append({"type": "addFxLayerEffect", "compositionId": "main", "layerId": lid,
                              "effectId": self.new_id(), "effect": {"type": "posterizeTime", "frameRate": STOP_MOTION_FPS}})
 
-    def pop_in(self, lid: int, base_scale: float, at: int = 0, dur: int = 1000) -> None:
+    def pop_in(self, lid: int, base_scale: float, at: int = 0, dur: int = 1000, fade_out: bool = True) -> None:
         self.keys(lid, "scaleX", [(at, base_scale * 0.6, LINEAR), (at + 220, base_scale * 1.06, POP),
                                   (at + 340, base_scale, POP)])
         self.keys(lid, "scaleY", [(at, base_scale * 0.6, LINEAR), (at + 220, base_scale * 1.06, POP),
                                   (at + 340, base_scale, POP)])
-        self.keys(lid, "opacity", [(at, 0, LINEAR), (at + 60, 100, LINEAR), (dur - 120, 100, LINEAR), (dur, 0, LINEAR)])
+        fade = [(dur - 120, 100, LINEAR), (dur, 0, LINEAR)] if fade_out else []
+        self.keys(lid, "opacity", [(at, 0, LINEAR), (at + 60, 100, LINEAR)] + fade)
 
 
 def scale_for(size, width):
@@ -260,19 +263,20 @@ def keyword(b: Builder, m: dict, t0: int, dur: int, tmp: Path) -> None:
     b.stop_motion(lid)
 
 
-def title_card(b: Builder, m: dict, t0: int, dur: int, tmp: Path) -> None:
+def title_card(b: Builder, m: dict, t0: int, dur: int, tmp: Path, exits: bool = True) -> None:
     # Card torn down both sides: the torn left edge leads it in from the right, the torn right
     # edge trails it out to the left. Its canvas is wider than the frame, so neither tear shows
-    # once it has settled.
+    # once it has settled. The closing card (exits=False) holds to the last frame.
     card_path = LIB / "paper" / "blue-paper-card.png"
     cw, ch = Image.open(card_path).size
     card = b.image(card_path, (cw, ch), t0, dur, (540, 960), name="Title paper")
-    b.keys(card, "positionX", [(0, 540 + cw - 260, LINEAR), (300, 540, POP), (dur - 350, 540, LINEAR),
-                               (dur, 540 - cw + 260, LINEAR)])
+    exit_card = [(dur - 350, 540, LINEAR), (dur, 540 - cw + 260, LINEAR)] if exits else []
+    b.keys(card, "positionX", [(0, 540 + cw - 260, LINEAR), (300, 540, POP)] + exit_card)
     size = title_word(m["title"], tmp / f"title-{t0}.png")
     tw = b.image(tmp / f"title-{t0}.png", size, t0 + 300, dur - 300, (540, 700), name="Title word")
-    b.pop_in(tw, 100, 0, dur - 300)
-    b.keys(tw, "positionX", [(dur - 650, 540, LINEAR), (dur - 300, -560, LINEAR)])
+    b.pop_in(tw, 100, 0, dur - 300, fade_out=exits)
+    if exits:
+        b.keys(tw, "positionX", [(dur - 650, 540, LINEAR), (dur - 300, -560, LINEAR)])
     b.stop_motion(tw)
     for i, line in enumerate(m.get("lines", [])[:3]):
         size = label_strip(line, tmp / f"label-{t0}-{i}.png")
@@ -280,7 +284,8 @@ def title_card(b: Builder, m: dict, t0: int, dur: int, tmp: Path) -> None:
         ll = b.image(tmp / f"label-{t0}-{i}.png", size, t0 + delay, dur - delay, (540, 880 + i * 92),
                      rotation=(-1.5, 1, -0.5)[i], name=f"Title label {i + 1}")
         b.keys(ll, "opacity", [(0, 0, LINEAR), (40, 100, LINEAR)])
-        b.keys(ll, "positionX", [(dur - delay - 350, 540, LINEAR), (dur - delay, -560, LINEAR)])
+        if exits:
+            b.keys(ll, "positionX", [(dur - delay - 350, 540, LINEAR), (dur - delay, -560, LINEAR)])
         b.stop_motion(ll)
     wipe = LIB / "paper" / "strip-newspaper.png"
     wl = b.image(wipe, Image.open(wipe).size, t0, 420, (540, 960), rotation=-12, name="Title wipe in")
@@ -438,7 +443,7 @@ def build(v: VideoFolder, cfg: Config) -> None:
     # "Free statement analysis / Link in bio" -> title "free" over the remaining words.
     cta_lines = [re.sub(r"^free\s+", "", l, flags=re.IGNORECASE) for l in BRAND["cta"].split("\n")]
     b.in_moment = True
-    title_card(b, {"title": "free", "lines": cta_lines}, cta_start, dur - cta_start, tmp)
+    title_card(b, {"title": "free", "lines": cta_lines}, cta_start, dur - cta_start, tmp, exits=False)
     for m, start, length in schedule(script.get("moments", []), words, cta_start):
         BUILDERS[m["type"]](b, m, start, length, tmp)
 
