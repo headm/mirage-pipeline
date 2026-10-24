@@ -40,7 +40,7 @@
 <line x1="472" y1="182" x2="508" y2="182" class="arr" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
 <g class="teal"><rect x="510" y="226" width="150" height="48" rx="8" stroke-width="1"/><text class="t1" x="585" y="246" text-anchor="middle">Mirage API</text><text class="t2" x="585" y="264" text-anchor="middle">Avatar X render</text></g>
 <line x1="472" y1="250" x2="508" y2="250" class="arr" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
-<g class="teal"><rect x="510" y="300" width="150" height="150" rx="8" stroke-width="1"/><text class="t1" x="585" y="328" text-anchor="middle">Google Drive</text><text class="t2" x="585" y="354" text-anchor="middle">via rclone</text><text class="t2" x="585" y="382" text-anchor="middle">topics.csv, assets</text><text class="t2" x="585" y="404" text-anchor="middle">reference clip</text><text class="t2" x="585" y="426" text-anchor="middle">videos, ready, posted</text></g>
+<g class="teal"><rect x="510" y="300" width="150" height="150" rx="8" stroke-width="1"/><text class="t1" x="585" y="328" text-anchor="middle">Google Drive</text><text class="t2" x="585" y="354" text-anchor="middle">via rclone</text><text class="t2" x="585" y="382" text-anchor="middle">topics.csv, assets</text><text class="t2" x="585" y="404" text-anchor="middle">reference clip</text><text class="t2" x="585" y="426" text-anchor="middle">videos, ready</text></g>
 <line x1="492" y1="375" x2="508" y2="375" class="arr" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
 
 <line x1="585" y1="452" x2="585" y2="558" class="arr" marker-end="url(#arrow)"/>

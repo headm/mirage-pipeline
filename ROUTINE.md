@@ -19,7 +19,8 @@ Run `source tools/env.sh` again at the start of every later shell command that r
 source tools/env.sh && python3 -m pipeline plan
 ```
 
-This prints a JSON list of videos to work on. Unfinished videos from earlier runs come first.
+This prints a JSON list of videos to work on: unfinished videos from earlier runs first, then
+one new topic. Never move, rename or delete anything in `ready/`; that folder is the owner's.
 
 ## 3. Write scripts
 
@@ -82,17 +83,10 @@ source tools/env.sh && python3 -m pipeline reedit <id> && python3 -u -m pipeline
 (run produce in the background as in step 4; it only redoes the edit, which is free), then
 review again.
 
-At most **two** fix rounds per video. Then record the outcome:
-
-```bash
-source tools/env.sh && python3 -m pipeline verdict <id> pass "<one line: what you checked or fixed>"
-source tools/env.sh && python3 -m pipeline verdict <id> hold "<one line: what is still wrong>"
-```
-
-Use `hold` when a problem remains after two rounds, or when any problem has
-`"fixable_in_script": false` (a template or pipeline issue): the video stays in `ready/` with
-a `HELD.txt` note and the contact sheet next to it, so a person checks it before posting. Problems you judge harmless (for example a sticker just touching a
-label's end) can pass; say so in the note.
+At most **two** fix rounds per video. Whatever remains after that, and any problem with
+`"fixable_in_script": false` (a template or pipeline issue), goes in the report; the video
+stays in `ready/` as it is and the owner fixes it by hand. Problems you judge harmless (for
+example a sticker just touching a label's end) need no fix; mention them in the report.
 
 ## 6. Report
 
@@ -101,4 +95,5 @@ source tools/env.sh && python3 -m pipeline status
 ```
 
 End with a short summary: which videos were finished into `ready/` (id, topic, hook), what each
-review found and fixed, anything held (and why), and any errors with the exact message.
+review found and fixed, anything still wrong that needs a manual fix, and any errors with
+the exact message.

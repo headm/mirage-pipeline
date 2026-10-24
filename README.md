@@ -19,7 +19,7 @@ environment, never in this repo.
 |---|---|
 | `ROUTINE.md` | The daily instructions the cloud agent follows |
 | `instructions/script_writer.md` | Persona, approved claims, disclosure, script and on-screen text rules |
-| `pipeline/` | The pipeline: `plan`, `produce`, `review`, `verdict`, `status`, `fetch-assets` |
+| `pipeline/` | The pipeline: `plan`, `produce`, `review`, `reedit`, `status`, `fetch-assets` |
 | `pipeline/paper2.py` | The Paper II edit template |
 | `scripts/cloud_setup.sh` | Prepares a fresh cloud session (pinned, checksum-verified downloads) |
 | `scripts/build_paper2_assets.py` | Rebuilds the sticker, photo, circle and paper library |

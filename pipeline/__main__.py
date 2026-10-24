@@ -1,16 +1,15 @@
 """Command line: python -m pipeline <command>
 
     init            create the cloud folder layout and a starter topics.csv
-    status          show topics left, videos in progress, and what is ready and posted
-    plan            list videos to work on (unfinished first, then a new topic if ready/ is short);
-                    also removes unposted videos whose topic has expired
+    status          show topics left, videos in progress, and what is in ready/
+    plan            list videos to work on: unfinished ones first, then one new topic
     produce <id>    run the production steps for one video; finished videos land in ready/
     fetch-assets    download the Paper II image library from the cloud folder into brand/paper2/
     review <id>     automatic checks of a finished edit, plus a contact sheet of frames to look at
     reedit <id>     after changing script.json: check it and clear the edit so produce redoes it (free)
-    verdict <id> pass|hold "<note>"   record the review; hold leaves HELD.txt in its ready/ folder
 
-A scheduled run is: plan -> write script.json -> produce -> review (and fix) -> verdict.
+A scheduled run is: plan -> write script.json -> produce -> review (and fix).
+What happens to a video after it lands in ready/ is up to you.
 """
 import json
 import sys
@@ -41,15 +40,11 @@ def unfinished(store: Store) -> list[str]:
 
 def status(store: Store, cfg: config.Config) -> None:
     rows = topics.load(store, cfg.work_dir) if store.exists("topics.csv") else []
-    ready, posted = store.list_dirs("ready"), store.list_dirs("posted")
+    ready = store.list_dirs("ready")
     in_progress = unfinished(store)
-    held = [v for v in ready if "HELD.txt" in store.list_files(f"ready/{v}")]
     print(f"topics:       {len(rows)} ({sum(1 for r in rows if topics.times_used(r) == 0)} never used)")
     print(f"in progress:  {len(in_progress)} {in_progress}")
-    print(f"ready:        {len(ready)} (target {cfg.ready_target}) {ready}")
-    if held:
-        print(f"  held:       {len(held)} {held}")
-    print(f"posted:       {len(posted)}")
+    print(f"ready:        {len(ready)} {ready}")
 
 
 def previous_videos(store: Store, cfg: config.Config, topic_id: str, exclude: str) -> list[dict]:
@@ -81,28 +76,18 @@ def new_video_id(store: Store, today: date, topic_id: str) -> str:
     return video_id
 
 
-def remove_expired(store: Store, cfg: config.Config, today: date) -> None:
-    for video_id in store.list_dirs("ready"):
-        topic = json.loads(VideoFolder(store, cfg.work_dir, video_id).path("topic.json").read_text())
-        if topics.is_expired(topic, today):
-            store.purge(f"ready/{video_id}")
-            print(f"[{video_id}] topic expired, removed from ready/", file=sys.stderr)
-
-
 def plan(store: Store, cfg: config.Config) -> None:
     today = date.today()
-    remove_expired(store, cfg, today)
     ids = unfinished(store)
-    if len(store.list_dirs("ready")) + len(ids) < cfg.ready_target:
-        topic = topics.take_next(store, cfg.work_dir, today)
-        if topic:
-            video_id = new_video_id(store, today, topic["id"])
-            v = VideoFolder(store, cfg.work_dir, video_id)
-            (v.local / "topic.json").write_text(json.dumps(topic, indent=2))
-            v.save("topic.json")
-            ids.append(video_id)
-        else:
-            print("WARNING: no usable topics in topics.csv (all expired?)", file=sys.stderr)
+    topic = topics.take_next(store, cfg.work_dir, today)
+    if topic:
+        video_id = new_video_id(store, today, topic["id"])
+        v = VideoFolder(store, cfg.work_dir, video_id)
+        (v.local / "topic.json").write_text(json.dumps(topic, indent=2))
+        v.save("topic.json")
+        ids.append(video_id)
+    else:
+        print("WARNING: no usable topics in topics.csv (all expired?)", file=sys.stderr)
 
     todo = []
     for video_id in ids:
@@ -131,7 +116,7 @@ def produce(store: Store, cfg: config.Config, video_id: str) -> None:
     print(f"[{video_id}] finished, in ready/")
 
 
-EDIT_OUTPUTS = ("final.mp4", "cover.png", "edit.tsrct", "layout.json", "caption.txt", "review.png", "review.json")
+EDIT_OUTPUTS = ("final.mp4", "cover.png", "edit.tsrct", "layout.json", "caption.txt", "review.png")
 
 
 def review(store: Store, cfg: config.Config, video_id: str) -> None:
@@ -159,31 +144,7 @@ def reedit(store: Store, cfg: config.Config, video_id: str) -> None:
         if v.done(name):
             store.delete_file(f"{v.rel}/{name}")
         (v.local / name).unlink(missing_ok=True)
-    if video_id in store.list_dirs("ready"):
-        store.purge(f"ready/{video_id}")
     print(f"[{video_id}] edit cleared; run produce again")
-
-
-def verdict(store: Store, cfg: config.Config, video_id: str, decision: str, note: str) -> None:
-    if decision not in ("pass", "hold"):
-        sys.exit("verdict must be pass or hold")
-    v = VideoFolder(store, cfg.work_dir, video_id)
-    (v.local / "review.json").write_text(json.dumps({"verdict": decision, "note": note,
-                                                     "date": date.today().isoformat()}, indent=2))
-    v.save("review.json")
-    folder = f"ready/{video_id}"
-    if decision == "hold":
-        held = v.local / "HELD.txt"
-        held.write_text(f"Held back by the automatic review - check before posting.\n\n{note}\n")
-        store.upload(held, f"{folder}/HELD.txt")
-        if v.done("review.png"):
-            store.upload(v.path("review.png"), f"{folder}/review.png")
-        print(f"[{video_id}] held (HELD.txt in ready/): {note}")
-    else:
-        for name in ("HELD.txt", "review.png"):
-            if name in store.list_files(folder):
-                store.delete_file(f"{folder}/{name}")
-        print(f"[{video_id}] review passed")
 
 
 def main() -> None:
@@ -205,8 +166,6 @@ def main() -> None:
         review(store, cfg, args[1])
     elif command == "reedit" and len(args) == 2:
         reedit(store, cfg, args[1])
-    elif command == "verdict" and len(args) == 4:
-        verdict(store, cfg, args[1], args[2], args[3])
     else:
         sys.exit(__doc__)
 

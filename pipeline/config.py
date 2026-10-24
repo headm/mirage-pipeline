@@ -21,7 +21,6 @@ def load_dotenv(path: Path = ROOT / ".env") -> None:
 class Config:
     remote: str           # rclone remote root, e.g. "gdrive:mirage-pipeline" or a local path for testing
     work_dir: Path        # local scratch space for the current run
-    ready_target: int     # unposted finished videos to keep in ready/
     tsrct: str            # Tesseract CLI binary
     font: Path            # TTF embedded in every edit
 
@@ -31,7 +30,6 @@ def load() -> Config:
     return Config(
         remote=os.environ["PIPELINE_REMOTE"].rstrip("/"),
         work_dir=Path(os.environ.get("PIPELINE_WORK_DIR", ROOT / "work")),
-        ready_target=int(os.environ.get("READY_TARGET", "3")),
         tsrct=os.environ.get("TSRCT", "tsrct"),
         font=Path(os.environ.get("FONT", ROOT / "brand" / "font.ttf")),
     )

@@ -4,14 +4,12 @@ Layout under the remote root:
     topics.csv          topic list you edit
     videos/<id>/        one folder per video; each step writes its own file here
     ready/<id>/         every finished video: video.mp4, cover.png, caption.txt
-                        (plus HELD.txt and review.png if the automatic review held it back)
-    posted/<id>/        you move a folder here after posting it
 """
 import json
 import subprocess
 from pathlib import Path
 
-FOLDERS = ("videos", "ready", "posted")
+FOLDERS = ("videos", "ready")
 
 
 class Store:
