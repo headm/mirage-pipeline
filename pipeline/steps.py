@@ -109,7 +109,7 @@ def production_steps(cfg: Config) -> list[Step]:
     if os.environ.get("TEMPLATE", "paper2") == "classic":
         edit_step = Step("edit", ("final.mp4", "cover.png", "edit.tsrct"), lambda v: edit.build(v, cfg))
     else:
-        edit_step = Step("edit", ("final.mp4", "cover.png", "edit.tsrct"), lambda v: paper2.build(v, cfg))
+        edit_step = Step("edit", ("final.mp4", "cover.png", "edit.tsrct", "layout.json"), lambda v: paper2.build(v, cfg))
     return [
         Step("script", ("script.json",), check_script),
         Step("voice", ("voice.mp3", "alignment.json"), voice),

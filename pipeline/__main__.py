@@ -6,8 +6,11 @@
     produce <id>    run the production steps for one video; script.json must be written first
     deliver         move the oldest queued video into ready/ (skipping expired topics)
     fetch-assets    download the Paper II image library from the cloud folder into brand/paper2/
+    review <id>     automatic checks of a finished edit, plus a contact sheet of frames to look at
+    reedit <id>     after changing script.json: check it and clear the edit so produce redoes it (free)
+    verdict <id> pass|hold "<note>"   record the review; hold moves the video out of the queue
 
-A scheduled run is: plan -> write script.json for each video that needs one -> produce each -> deliver.
+A scheduled run is: plan -> write script.json -> produce -> review (and fix) -> verdict -> deliver.
 """
 import json
 import sys
@@ -15,7 +18,8 @@ from datetime import date
 
 from . import config, paper2, topics
 from .config import ROOT
-from .steps import production_steps
+from . import review as reviewer
+from .steps import check_script, production_steps
 from .store import FOLDERS, Store
 from .video import VideoFolder
 
@@ -44,6 +48,9 @@ def status(store: Store, cfg: config.Config) -> None:
     print(f"queued:       {len(queued)} (target {cfg.queue_target})")
     print(f"ready:        {len(ready)} {ready}")
     print(f"posted:       {len(posted)}")
+    held = store.list_dirs("review")
+    if held:
+        print(f"held for review: {len(held)} {held}")
 
 
 def previous_videos(store: Store, cfg: config.Config, topic_id: str, exclude: str) -> list[dict]:
@@ -130,6 +137,56 @@ def deliver(store: Store, cfg: config.Config) -> None:
     print("nothing in the queue to deliver")
 
 
+EDIT_OUTPUTS = ("final.mp4", "cover.png", "edit.tsrct", "layout.json", "caption.txt", "review.png", "review.json")
+
+
+def review(store: Store, cfg: config.Config, video_id: str) -> None:
+    v = VideoFolder(store, cfg.work_dir, video_id)
+    if not (v.done("final.mp4") and v.done("layout.json")):
+        sys.exit(f"{video_id} has no finished edit to review; run produce first")
+    layout = json.loads(v.path("layout.json").read_text())
+    problems = reviewer.layout_checks(layout) + reviewer.media_checks(v.path("final.mp4"), layout)
+    sheet = v.local / "review.png"
+    frames = reviewer.contact_sheet(v.path("final.mp4"), layout, sheet)
+    v.save("review.png")
+    print(json.dumps({"video": video_id, "problems": problems, "contact_sheet": str(sheet),
+                      "frames_on_sheet": frames, "moments_placed": layout["placed"],
+                      "script_path": str(v.local / "script.json")}, indent=2))
+
+
+def reedit(store: Store, cfg: config.Config, video_id: str) -> None:
+    """Check the changed script.json, then clear the edit so the next produce rebuilds it.
+    Voice, avatar and matte are kept, so this never pays for a render again."""
+    v = VideoFolder(store, cfg.work_dir, video_id)
+    v.path("script.json")
+    check_script(v)
+    v.save("script.json")
+    for name in EDIT_OUTPUTS:
+        if v.done(name):
+            store.delete_file(f"{v.rel}/{name}")
+        (v.local / name).unlink(missing_ok=True)
+    if video_id in store.list_dirs("queue"):
+        store.purge(f"queue/{video_id}")
+    print(f"[{video_id}] edit cleared; run produce again")
+
+
+def verdict(store: Store, cfg: config.Config, video_id: str, decision: str, note: str) -> None:
+    if decision not in ("pass", "hold"):
+        sys.exit("verdict must be pass or hold")
+    v = VideoFolder(store, cfg.work_dir, video_id)
+    (v.local / "review.json").write_text(json.dumps({"verdict": decision, "note": note,
+                                                     "date": date.today().isoformat()}, indent=2))
+    v.save("review.json")
+    if decision == "hold" and video_id in store.list_dirs("queue"):
+        store.move_dir(f"queue/{video_id}", f"review/{video_id}")
+        store.upload(v.local / "review.json", f"review/{video_id}/review.json")
+        if v.done("review.png"):
+            store.upload(v.path("review.png"), f"review/{video_id}/review.png")
+        print(f"[{video_id}] held in review/: {note}")
+    else:
+        print(f"[{video_id}] review passed")
+
+
 def main() -> None:
     cfg = config.load()
     store = Store(cfg.remote)
@@ -147,6 +204,12 @@ def main() -> None:
         deliver(store, cfg)
     elif command == "fetch-assets":
         fetch_assets(store)
+    elif command == "review" and len(args) == 2:
+        review(store, cfg, args[1])
+    elif command == "reedit" and len(args) == 2:
+        reedit(store, cfg, args[1])
+    elif command == "verdict" and len(args) == 4:
+        verdict(store, cfg, args[1], args[2], args[3])
     else:
         sys.exit(__doc__)
 

@@ -6,12 +6,13 @@ Layout under the remote root:
     queue/<id>/         finished videos waiting for delivery
     ready/<id>/         today's video: video.mp4, cover.png, caption.txt
     posted/<id>/        you move a folder here after posting it
+    review/<id>/        held back by the automatic review; needs a person to look
 """
 import json
 import subprocess
 from pathlib import Path
 
-FOLDERS = ("videos", "queue", "ready", "posted")
+FOLDERS = ("videos", "queue", "ready", "posted", "review")
 
 
 class Store:
@@ -73,6 +74,9 @@ class Store:
         except RuntimeError as e:
             if "directory not found" not in str(e) and "no such file" not in str(e):
                 raise
+
+    def delete_file(self, rel: str) -> None:
+        self._rclone("deletefile", self._path(rel))
 
     def purge(self, rel: str) -> None:
         self._rclone("purge", self._path(rel))

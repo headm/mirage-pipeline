@@ -54,13 +54,54 @@ until tail -3 work/<id>.log | grep -qiE 'queued|error|rejected|Traceback'; do sl
 - For any other error, run produce once more. If it fails again, stop working on that video and
   report the error.
 
-## 5. Deliver
+## 5. Review each finished video (and fix what you can)
+
+For each video that produce reported as `queued`:
+
+```bash
+source tools/env.sh && python3 -m pipeline review <id>
+```
+
+This prints automatic check results (`problems`) and saves a contact sheet of frames
+(`contact_sheet`). Open the contact sheet image with the Read tool and look at every frame:
+
+- Is all on-screen text fully inside the frame, readable, and meaningful on its own?
+- Does anything overlap badly (text over text, a sticker over a label, graphics over the face)?
+- Does the closing card stay up through the last frame?
+- Does anything look broken: missing graphics, odd cropping, a blank or black frame?
+
+**What you may fix:** only that video's `script.json` (at `script_path`): the `moments`, their
+`at_word`, their on-screen text, and which stickers, photos or circles they use, plus the
+matching `on_screen_review`. Never change the spoken `script`, the disclosure, the caption, the
+approved facts, or any code. After editing:
+
+```bash
+source tools/env.sh && python3 -m pipeline reedit <id> && python3 -u -m pipeline produce <id> > work/<id>.log 2>&1
+```
+
+(run produce in the background as in step 4; it only redoes the edit, which is free), then
+review again.
+
+At most **two** fix rounds per video. Then record the outcome:
+
+```bash
+source tools/env.sh && python3 -m pipeline verdict <id> pass "<one line: what you checked or fixed>"
+source tools/env.sh && python3 -m pipeline verdict <id> hold "<one line: what is still wrong>"
+```
+
+Use `hold` when a problem remains after two rounds, or when any problem has
+`"fixable_in_script": false` (a template or pipeline issue): the video moves to `review/`
+instead of being delivered. Problems you judge harmless (for example a sticker just touching a
+label's end) can pass; say so in the note.
+
+## 6. Deliver
 
 ```bash
 source tools/env.sh && python3 -m pipeline deliver && python3 -m pipeline status
 ```
 
-## 6. Report
+## 7. Report
 
 End with a short summary: which video went to `ready/` (id, topic, hook), which videos were
-produced into the queue, and any errors with the exact message.
+produced into the queue, what each review found and fixed, anything held in `review/` and why,
+and any errors with the exact message.

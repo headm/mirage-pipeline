@@ -323,7 +323,8 @@ def circle(b: Builder, m: dict, t0: int, dur: int, tmp: Path) -> None:
 BUILDERS = {"banner": banner, "keyword": keyword, "title": title_card, "photo": photo, "circle": circle}
 
 
-def schedule(moments: list[dict], words: list, cta_start: int) -> list[tuple[dict, int, int]]:
+def schedule(moments: list[dict], words: list, cta_start: int,
+             skipped: list | None = None) -> list[tuple[dict, int, int]]:
     """Place each moment at its word, without overlaps, ending before the call to action."""
     placed, free_from = [], 0
     for m in sorted(moments, key=lambda m: m.get("at_word", 0)):
@@ -334,6 +335,8 @@ def schedule(moments: list[dict], words: list, cta_start: int) -> list[tuple[dic
         dur = DURATIONS[m["type"]]
         if start + dur > cta_start - 200:
             print(f"skipping {m['type']} moment at word {idx}: it would run into the call to action")
+            if skipped is not None:
+                skipped.append({**m, "reason": "would run into the call to action; use an earlier at_word"})
             continue
         placed.append((m, start, dur))
         free_from = start + dur + 600
@@ -386,6 +389,26 @@ def validate_moments(moments: list[dict], review: list[dict] | None = None) -> l
     return problems
 
 
+def write_layout(path: Path, b: "Builder", dur: int, cta_start: int, placed: list, skipped: list) -> None:
+    """Where every image layer sits and when, for the automatic review checks (pipeline/review.py)."""
+    layers = []
+    for layer in b.front + b.moments + b.behind_person:
+        t = layer["transform"]
+        w, h = t["anchorPoint"][0] * 2 * t["scale"][0] / 100, t["anchorPoint"][1] * 2 * t["scale"][1] / 100
+        rng = layer["activeRange"]
+        layers.append({"id": layer["id"], "name": layer["name"], "start": rng["start"],
+                       "end": rng["start"] + rng["duration"], "cx": t["position"][0], "cy": t["position"][1],
+                       "w": round(w), "h": round(h), "rotation": t["rotation"],
+                       "behind_person": layer in b.behind_person})
+    animated_x = {a["property"]["layerId"]: max(k["layerTime"] for k in a["keyframes"])
+                  for a in b.actions if a.get("type") == "setFxPropertyKeyframes"
+                  and a["property"]["propertyType"] == "positionX"}
+    path.write_text(json.dumps({
+        "duration": dur, "cta_start": cta_start,
+        "placed": [{**m, "start": st, "duration": ln} for m, st, ln in placed],
+        "skipped": skipped, "layers": layers, "last_positionX_key": animated_x}, indent=1))
+
+
 # ---------- build ----------
 
 def tsrct(cfg: Config, *args: str) -> dict:
@@ -417,12 +440,21 @@ def build(v: VideoFolder, cfg: Config) -> None:
     tsrct(cfg, "project", "import-video", "-p", p, "--file", str(v.path("matte.mp4")), "--asset-id", "matte")
     dur = clip["durationMs"]
     cta_start = max(0, dur - CTA_MS)
+    skipped: list[dict] = []
+    placed = schedule(script.get("moments", []), words, cta_start, skipped)
     b = Builder()
 
     # Persistent pieces, front-most first: halftone print texture, logo, then the disclosure
     # label, which is up only while the spoken disclosure sentence (after the hook) is said.
     b.image(LIB / "paper" / "halftone-overlay.png", (1080, 1920), 0, dur, (540, 960), name="Halftone overlay")
-    b.image(ROOT / "brand" / "logo-small.png", (217, 240), 0, dur, (985, 215), width=96, name="Logo")
+    # Logo only between graphic moments: every moment and the closing card use the top of the
+    # frame, so a logo that's always on collides with their stickers and labels.
+    busy = sorted([(st, st + ln) for _, st, ln in placed] + [(cta_start, dur)])
+    free_from = 0
+    for st, en in busy + [(dur, dur)]:
+        if st - free_from >= 800:
+            b.image(ROOT / "brand" / "logo-small.png", (217, 240), free_from, st - free_from, (985, 215), width=96, name="Logo")
+        free_from = max(free_from, en)
     size = label_strip(BRAND["disclosure"], tmp / "disclosure.png", size=25)
     d_start, d_end = disclosure_window(words)
     d_start, shown = max(0, d_start - 150), max(2000, d_end - d_start + 550)
@@ -444,8 +476,9 @@ def build(v: VideoFolder, cfg: Config) -> None:
     cta_lines = [re.sub(r"^free\s+", "", l, flags=re.IGNORECASE) for l in BRAND["cta"].split("\n")]
     b.in_moment = True
     title_card(b, {"title": "free", "lines": cta_lines}, cta_start, dur - cta_start, tmp, exits=False)
-    for m, start, length in schedule(script.get("moments", []), words, cta_start):
+    for m, start, length in placed:
         BUILDERS[m["type"]](b, m, start, length, tmp)
+    write_layout(v.local / "layout.json", b, dur, cta_start, placed, skipped)
 
     for asset, path in b.assets.items():
         tsrct(cfg, "project", "import-asset", "-p", p, "--file", str(path), "--asset-id", asset, "--kind", "image")
