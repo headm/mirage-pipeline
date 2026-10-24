@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="680" height="650" viewBox="0 0 680 650" role="img" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
 <title>Mirage TikTok pipeline cloud architecture</title>
-<desc>A daily routine starts a Claude Code cloud session that clones the GitHub repo, then runs the agent, voice, avatar, matte, Tesseract edit and delivery steps. The voice step calls ElevenLabs, the avatar step calls the Mirage API, and files move to and from Google Drive with rclone. You review videos in Drive and upload to TikTok manually.</desc>
+<desc>A daily routine starts a Claude Code cloud session that clones the GitHub repo, then runs the agent, voice, avatar, matte, Tesseract edit, review and packaging steps. The voice step calls ElevenLabs, the avatar step calls the Mirage API, and files move to and from Google Drive with rclone. You review videos in Drive and upload to TikTok manually.</desc>
 <defs>
   <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#73726c" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker>
   <style>
@@ -29,7 +29,7 @@
 <line x1="340" y1="342" x2="340" y2="360" class="arr" marker-end="url(#arrow)"/>
 <g class="purple"><rect x="210" y="362" width="260" height="48" rx="8" stroke-width="1"/><text class="t1" x="340" y="382" text-anchor="middle">Edit (Mirage Tesseract CLI)</text><text class="t2" x="340" y="400" text-anchor="middle">Paper II template to MP4</text></g>
 <line x1="340" y1="410" x2="340" y2="428" class="arr" marker-end="url(#arrow)"/>
-<g class="purple"><rect x="210" y="430" width="260" height="48" rx="8" stroke-width="1"/><text class="t1" x="340" y="450" text-anchor="middle">Package and deliver</text><text class="t2" x="340" y="468" text-anchor="middle">Queue, then oldest to ready/</text></g>
+<g class="purple"><rect x="210" y="430" width="260" height="48" rx="8" stroke-width="1"/><text class="t1" x="340" y="450" text-anchor="middle">Review and package</text><text class="t2" x="340" y="468" text-anchor="middle">Finished videos to ready/</text></g>
 
 <g class="gray"><rect x="30" y="90" width="140" height="56" rx="8" stroke-width="1"/><text class="t1" x="100" y="113" text-anchor="middle">Routine</text><text class="t2" x="100" y="132" text-anchor="middle">Daily, 6am PT</text></g>
 <line x1="170" y1="114" x2="208" y2="114" class="arr" marker-end="url(#arrow)"/>
@@ -40,7 +40,7 @@
 <line x1="472" y1="182" x2="508" y2="182" class="arr" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
 <g class="teal"><rect x="510" y="226" width="150" height="48" rx="8" stroke-width="1"/><text class="t1" x="585" y="246" text-anchor="middle">Mirage API</text><text class="t2" x="585" y="264" text-anchor="middle">Avatar X render</text></g>
 <line x1="472" y1="250" x2="508" y2="250" class="arr" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
-<g class="teal"><rect x="510" y="300" width="150" height="150" rx="8" stroke-width="1"/><text class="t1" x="585" y="328" text-anchor="middle">Google Drive</text><text class="t2" x="585" y="354" text-anchor="middle">via rclone</text><text class="t2" x="585" y="382" text-anchor="middle">topics.csv, assets</text><text class="t2" x="585" y="404" text-anchor="middle">reference clip</text><text class="t2" x="585" y="426" text-anchor="middle">videos, queue, ready</text></g>
+<g class="teal"><rect x="510" y="300" width="150" height="150" rx="8" stroke-width="1"/><text class="t1" x="585" y="328" text-anchor="middle">Google Drive</text><text class="t2" x="585" y="354" text-anchor="middle">via rclone</text><text class="t2" x="585" y="382" text-anchor="middle">topics.csv, assets</text><text class="t2" x="585" y="404" text-anchor="middle">reference clip</text><text class="t2" x="585" y="426" text-anchor="middle">videos, ready, posted</text></g>
 <line x1="492" y1="375" x2="508" y2="375" class="arr" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
 
 <line x1="585" y1="452" x2="585" y2="558" class="arr" marker-end="url(#arrow)"/>

@@ -44,7 +44,7 @@ Then wait for it with a background wait loop (long `sleep` commands are blocked)
 it reports back:
 
 ```bash
-until tail -3 work/<id>.log | grep -qiE 'queued|error|rejected|Traceback'; do sleep 15; done; tail -12 work/<id>.log
+until tail -3 work/<id>.log | grep -qiE 'finished, in ready|error|rejected|Traceback'; do sleep 15; done; tail -12 work/<id>.log
 ```
 
 (run that with `run_in_background: true`).
@@ -56,7 +56,7 @@ until tail -3 work/<id>.log | grep -qiE 'queued|error|rejected|Traceback'; do sl
 
 ## 5. Review each finished video (and fix what you can)
 
-For each video that produce reported as `queued`:
+For each video that produce reported as `finished, in ready/`:
 
 ```bash
 source tools/env.sh && python3 -m pipeline review <id>
@@ -90,18 +90,15 @@ source tools/env.sh && python3 -m pipeline verdict <id> hold "<one line: what is
 ```
 
 Use `hold` when a problem remains after two rounds, or when any problem has
-`"fixable_in_script": false` (a template or pipeline issue): the video moves to `review/`
-instead of being delivered. Problems you judge harmless (for example a sticker just touching a
+`"fixable_in_script": false` (a template or pipeline issue): the video stays in `ready/` with
+a `HELD.txt` note and the contact sheet next to it, so a person checks it before posting. Problems you judge harmless (for example a sticker just touching a
 label's end) can pass; say so in the note.
 
-## 6. Deliver
+## 6. Report
 
 ```bash
-source tools/env.sh && python3 -m pipeline deliver && python3 -m pipeline status
+source tools/env.sh && python3 -m pipeline status
 ```
 
-## 7. Report
-
-End with a short summary: which video went to `ready/` (id, topic, hook), which videos were
-produced into the queue, what each review found and fixed, anything held in `review/` and why,
-and any errors with the exact message.
+End with a short summary: which videos were finished into `ready/` (id, topic, hook), what each
+review found and fixed, anything held (and why), and any errors with the exact message.

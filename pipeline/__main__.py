@@ -1,16 +1,16 @@
 """Command line: python -m pipeline <command>
 
     init            create the cloud folder layout and a starter topics.csv
-    status          show topics left, videos in progress, and what is queued, ready and posted
-    plan            list videos to work on (unfinished first, then a new topic if the queue is short)
-    produce <id>    run the production steps for one video; script.json must be written first
-    deliver         move the oldest queued video into ready/ (skipping expired topics)
+    status          show topics left, videos in progress, and what is ready and posted
+    plan            list videos to work on (unfinished first, then a new topic if ready/ is short);
+                    also removes unposted videos whose topic has expired
+    produce <id>    run the production steps for one video; finished videos land in ready/
     fetch-assets    download the Paper II image library from the cloud folder into brand/paper2/
     review <id>     automatic checks of a finished edit, plus a contact sheet of frames to look at
     reedit <id>     after changing script.json: check it and clear the edit so produce redoes it (free)
-    verdict <id> pass|hold "<note>"   record the review; hold moves the video out of the queue
+    verdict <id> pass|hold "<note>"   record the review; hold leaves HELD.txt in its ready/ folder
 
-A scheduled run is: plan -> write script.json -> produce -> review (and fix) -> verdict -> deliver.
+A scheduled run is: plan -> write script.json -> produce -> review (and fix) -> verdict.
 """
 import json
 import sys
@@ -41,16 +41,15 @@ def unfinished(store: Store) -> list[str]:
 
 def status(store: Store, cfg: config.Config) -> None:
     rows = topics.load(store, cfg.work_dir) if store.exists("topics.csv") else []
-    queued, ready, posted = (store.list_dirs(f) for f in ("queue", "ready", "posted"))
+    ready, posted = store.list_dirs("ready"), store.list_dirs("posted")
     in_progress = unfinished(store)
+    held = [v for v in ready if "HELD.txt" in store.list_files(f"ready/{v}")]
     print(f"topics:       {len(rows)} ({sum(1 for r in rows if topics.times_used(r) == 0)} never used)")
     print(f"in progress:  {len(in_progress)} {in_progress}")
-    print(f"queued:       {len(queued)} (target {cfg.queue_target})")
-    print(f"ready:        {len(ready)} {ready}")
-    print(f"posted:       {len(posted)}")
-    held = store.list_dirs("review")
+    print(f"ready:        {len(ready)} (target {cfg.ready_target}) {ready}")
     if held:
-        print(f"held for review: {len(held)} {held}")
+        print(f"  held:       {len(held)} {held}")
+    print(f"posted:       {len(posted)}")
 
 
 def previous_videos(store: Store, cfg: config.Config, topic_id: str, exclude: str) -> list[dict]:
@@ -82,10 +81,19 @@ def new_video_id(store: Store, today: date, topic_id: str) -> str:
     return video_id
 
 
+def remove_expired(store: Store, cfg: config.Config, today: date) -> None:
+    for video_id in store.list_dirs("ready"):
+        topic = json.loads(VideoFolder(store, cfg.work_dir, video_id).path("topic.json").read_text())
+        if topics.is_expired(topic, today):
+            store.purge(f"ready/{video_id}")
+            print(f"[{video_id}] topic expired, removed from ready/", file=sys.stderr)
+
+
 def plan(store: Store, cfg: config.Config) -> None:
+    today = date.today()
+    remove_expired(store, cfg, today)
     ids = unfinished(store)
-    if len(store.list_dirs("queue")) + len(ids) < cfg.queue_target:
-        today = date.today()
+    if len(store.list_dirs("ready")) + len(ids) < cfg.ready_target:
         topic = topics.take_next(store, cfg.work_dir, today)
         if topic:
             video_id = new_video_id(store, today, topic["id"])
@@ -120,21 +128,7 @@ def produce(store: Store, cfg: config.Config, video_id: str) -> None:
     if not all((ROOT / "brand" / "paper2" / f).is_dir() for f in ASSET_FOLDERS):
         fetch_assets(store)
     VideoFolder(store, cfg.work_dir, video_id).run(production_steps(cfg))
-    print(f"[{video_id}] queued")
-
-
-def deliver(store: Store, cfg: config.Config) -> None:
-    today = date.today()
-    for video_id in store.list_dirs("queue"):  # names start with the date, so oldest first
-        topic = json.loads(VideoFolder(store, cfg.work_dir, video_id).path("topic.json").read_text())
-        if topics.is_expired(topic, today):
-            store.purge(f"queue/{video_id}")
-            print(f"[{video_id}] expired, removed from queue")
-            continue
-        store.move_dir(f"queue/{video_id}", f"ready/{video_id}")
-        print(f"[{video_id}] delivered to ready/")
-        return
-    print("nothing in the queue to deliver")
+    print(f"[{video_id}] finished, in ready/")
 
 
 EDIT_OUTPUTS = ("final.mp4", "cover.png", "edit.tsrct", "layout.json", "caption.txt", "review.png", "review.json")
@@ -165,8 +159,8 @@ def reedit(store: Store, cfg: config.Config, video_id: str) -> None:
         if v.done(name):
             store.delete_file(f"{v.rel}/{name}")
         (v.local / name).unlink(missing_ok=True)
-    if video_id in store.list_dirs("queue"):
-        store.purge(f"queue/{video_id}")
+    if video_id in store.list_dirs("ready"):
+        store.purge(f"ready/{video_id}")
     print(f"[{video_id}] edit cleared; run produce again")
 
 
@@ -177,13 +171,18 @@ def verdict(store: Store, cfg: config.Config, video_id: str, decision: str, note
     (v.local / "review.json").write_text(json.dumps({"verdict": decision, "note": note,
                                                      "date": date.today().isoformat()}, indent=2))
     v.save("review.json")
-    if decision == "hold" and video_id in store.list_dirs("queue"):
-        store.move_dir(f"queue/{video_id}", f"review/{video_id}")
-        store.upload(v.local / "review.json", f"review/{video_id}/review.json")
+    folder = f"ready/{video_id}"
+    if decision == "hold":
+        held = v.local / "HELD.txt"
+        held.write_text(f"Held back by the automatic review - check before posting.\n\n{note}\n")
+        store.upload(held, f"{folder}/HELD.txt")
         if v.done("review.png"):
-            store.upload(v.path("review.png"), f"review/{video_id}/review.png")
-        print(f"[{video_id}] held in review/: {note}")
+            store.upload(v.path("review.png"), f"{folder}/review.png")
+        print(f"[{video_id}] held (HELD.txt in ready/): {note}")
     else:
+        for name in ("HELD.txt", "review.png"):
+            if name in store.list_files(folder):
+                store.delete_file(f"{folder}/{name}")
         print(f"[{video_id}] review passed")
 
 
@@ -200,8 +199,6 @@ def main() -> None:
         plan(store, cfg)
     elif command == "produce" and len(args) == 2:
         produce(store, cfg, args[1])
-    elif command == "deliver":
-        deliver(store, cfg)
     elif command == "fetch-assets":
         fetch_assets(store)
     elif command == "review" and len(args) == 2:

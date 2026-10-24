@@ -94,10 +94,10 @@ def package(v: VideoFolder) -> None:
     s = json.loads(v.path("script.json").read_text())
     tags = " ".join("#" + t.lstrip("#") for t in s["hashtags"])
     (v.local / "caption.txt").write_text(f"{s['caption']}\n\n{tags}\n")
-    queue = f"queue/{v.id}"
-    v.store.upload(v.path("final.mp4"), f"{queue}/video.mp4")
-    v.store.upload(v.path("cover.png"), f"{queue}/cover.png")
-    v.store.upload(v.local / "caption.txt", f"{queue}/caption.txt")
+    ready = f"ready/{v.id}"
+    v.store.upload(v.path("final.mp4"), f"{ready}/video.mp4")
+    v.store.upload(v.path("cover.png"), f"{ready}/cover.png")
+    v.store.upload(v.local / "caption.txt", f"{ready}/caption.txt")
 
 
 def matte(v: VideoFolder) -> None:
