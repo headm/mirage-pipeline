@@ -82,6 +82,10 @@ def avatar(v: VideoFolder, cfg: Config) -> None:
         status = requests.get(f"{api}/videos/{job}", headers=headers, timeout=30).json()
         if status["status"] == "COMPLETE":
             break
+        if status["status"] in ("FAILED", "CANCELLED"):
+            # A dead job never recovers; forget it so the next produce submits a new render.
+            v.store.delete_file(f"{v.rel}/mirage_job.txt")
+            (v.local / "mirage_job.txt").unlink(missing_ok=True)
         if status["status"] in ("FAILED", "CANCELLED") or time.time() > deadline:
             raise RuntimeError(f"Mirage render {job} ended as {status['status']}: {status.get('error')}")
         time.sleep(15)
